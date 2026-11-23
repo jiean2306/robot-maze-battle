@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Maze Bots — AI Code &amp; PvP Robot Arena</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2.2'%3E%3Crect x='3' y='3' width='18' height='18' rx='4'/%3E%3Ccircle cx='12' cy='12' r='3.5' fill='%232563eb'/%3E%3Cpath d='M12 2V6M12 18V22M2 12H6M18 12H22' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="style.css?v=12" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Persistent Top Header -->
+    <header class="top-bar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="3" width="18" height="18" rx="4" stroke="currentColor" stroke-width="2" />
+            <circle cx="12" cy="12" r="3.5" fill="currentColor" />
+            <path d="M12 3V7M12 17V21M3 12H7M17 12H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>Maze Bots</h1>
+          <span class="brand-sub" id="header-sub">AI Code Battle &amp; Ricochet Arena</span>
+        </div>
+      </div>
+
+      <div class="top-right-controls">
+        <!-- Global Audio Toggles -->
+        <div class="audio-controls">
+          <button type="button" id="btn-bgm" class="ctrl-btn toggle-on" title="Toggle Background Music">
+            <span class="dot"></span>
+            BGM: ON
+          </button>
+          <button type="button" id="btn-sfx" class="ctrl-btn toggle-on" title="Toggle Sound Effects">
+            <span class="dot"></span>
+            SFX: ON
+          </button>
+        </div>
+
+        <!-- Battle Controls (hidden on Setup screen) -->
+        <div id="battle-controls" class="battle-controls hidden">
+          <span id="theme-pill" class="theme-pill">Theme: Blueprint Lab</span>
+
+          <div class="control-group" role="group" aria-label="Match Speed">
+            <span class="control-label">Speed</span>
+            <div class="segmented" id="speed-controls">
+              <button type="button" class="seg-btn" data-speed="0.25">0.25×</button>
+              <button type="button" class="seg-btn" data-speed="0.5">0.5×</button>
+              <button type="button" class="seg-btn active" data-speed="1">1×</button>
+              <button type="button" class="seg-btn" data-speed="1.5">1.5×</button>
+              <button type="button" class="seg-btn" data-speed="2">2×</button>
+              <button type="button" class="seg-btn" data-speed="4">4×</button>
+            </div>
+          </div>
+
+          <button type="button" id="btn-auto-train" class="ctrl-btn" title="Auto-run 5 fast matches at 4× speed so self-learning AI bots evolve across generations">
+            Auto-Train ×5
+          </button>
+
+          <button type="button" id="btn-lidar" class="ctrl-btn toggle-on" title="Toggle LiDAR raycast visualization">
+            <span class="dot"></span>
+            LiDAR: ON
+          </button>
+
+          <button type="button" id="btn-pause" class="ctrl-btn">Pause</button>
+          <button type="button" id="btn-reset" class="ctrl-btn">New Maze</button>
+          <button type="button" id="btn-back-setup" class="ctrl-btn subtle">Setup</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- PRE-MATCH SETUP SCREEN -->
+    <main id="setup-screen" class="setup-screen">
+      <section class="setup-hero">
+        <div>
+          <h2>Pre-Match Arena &amp; Robot Setup</h2>
+          <p>Configure arena rules, copy the AI prompt for any LLM to code its own robot + explain its algorithm &amp; design thoughts, or jump in with 1P/2P tank controls.</p>
+        </div>
+
+        <div class="setup-actions-top">
+          <!-- Player Count Stepper (Min 2, Max 4) -->
+          <div class="roster-stepper" role="group" aria-label="Number of Robots">
+            <span class="stepper-label">Robots</span>
+            <button type="button" id="btn-count-minus" class="stepper-btn" title="Remove robot (min 2)">−</button>
+            <strong id="bot-count-display" class="stepper-val">4</strong>
+            <button type="button" id="btn-count-plus" class="stepper-btn" title="Add robot (max 4)">+</button>
+          </div>
+
+          <button type="button" id="btn-quick-pvp" class="btn btn-secondary" title="Quick setup: 2 Human Players 1v1">
+            2P Versus
+          </button>
+
+          <button type="button" id="btn-quick-code" class="btn btn-secondary" title="Quick setup: Load sample AI-coded bots to test code battles">
+            Code Arena
+          </button>
+
+          <button type="button" id="btn-randomize" class="btn btn-secondary">
+            Randomize AI
+          </button>
+
+          <button type="button" id="btn-start-battle" class="btn btn-primary">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="6 4 20 12 6 20 6 4"></polygon>
+            </svg>
+            Start Battle
+          </button>
+        </div>
+      </section>
+
+      <!-- ARENA RULES & AI PROMPT STUDIO -->
+      <section class="rules-studio-card">
+        <div class="rules-studio-head">
+          <div class="rules-title-group">
+            <span class="studio-badge">AI ARENA SDK</span>
+            <h3>Arena Rules &amp; Copyable AI Prompt</h3>
+            <span class="rules-hint">Rules below automatically update the prompt you send to ChatGPT, Claude, Gemini, DeepSeek, etc.</span>
+          </div>
+          <div class="rules-head-actions">
+            <button type="button" id="btn-toggle-rules" class="ctrl-btn">Customize Rules</button>
+            <button type="button" id="btn-view-prompt" class="ctrl-btn">Preview Prompt</button>
+            <button type="button" id="btn-copy-prompt" class="btn btn-accent btn-sm">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              Copy Prompt for Any AI
+            </button>
+          </div>
+        </div>
+
+        <div id="rules-editor-body" class="rules-editor-body hidden">
+          <div class="rules-grid">
+            <label class="rule-field">
+              <span>AI / Code Bullets</span>
+              <input id="rule-ai-ammo" type="number" min="1" max="15" step="1" value="3" />
+            </label>
+            <label class="rule-field">
+              <span>Player Bullets</span>
+              <input id="rule-player-ammo" type="number" min="1" max="30" step="1" value="20" />
+            </label>
+            <label class="rule-field">
+              <span>Reload (s / bullet)</span>
+              <input id="rule-reload" type="number" min="0.3" max="5" step="0.1" value="1.5" />
+            </label>
+            <label class="rule-field">
+              <span>AI Max HP</span>
+              <input id="rule-hp" type="number" min="40" max="200" step="10" value="100" />
+            </label>
+            <label class="rule-field">
+              <span>Player Max HP</span>
+              <input id="rule-player-hp" type="number" min="40" max="1000" step="10" value="300" />
+            </label>
+            <label class="rule-field">
+              <span>Bullet Damage</span>
+              <input id="rule-damage" type="number" min="5" max="50" step="1" value="18" />
+            </label>
+            <label class="rule-field">
+              <span>Bullet Speed (px/s)</span>
+              <input id="rule-bspeed" type="number" min="120" max="450" step="15" value="225" />
+            </label>
+            <label class="rule-field">
+              <span>Bullet Range (px)</span>
+              <input id="rule-range" type="number" min="250" max="900" step="25" value="550" />
+            </label>
+            <label class="rule-field">
+              <span>Max Bounces</span>
+              <input id="rule-bounces" type="number" min="0" max="6" step="1" value="3" />
+            </label>
+            <label class="rule-field">
+              <span>Fog of War (LOS Only)</span>
+              <select id="rule-fog">
+                <option value="off" selected>OFF (Full Radar + LOS flag)</option>
+                <option value="on">ON (Line-of-Sight Only)</option>
+              </select>
+            </label>
+            <label class="rule-field">
+              <span>Maze Seed (Optional)</span>
+              <input id="rule-seed" type="text" maxlength="24" placeholder="Random each match" />
+            </label>
+          </div>
+          <div class="rules-editor-foot">
+            <span class="rules-foot-note">All physics, fixed-forward cannon rules, speed caps, and pillar boosts are strictly enforced by the arena engine.</span>
+            <button type="button" id="btn-reset-rules" class="ctrl-btn subtle">Reset Default Rules</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="bot-config-grid" class="bot-config-grid">
+        <!-- Populated dynamically by game.js for 2..4 active robots -->
+      </section>
+
+      <footer class="setup-footer-specs">
+        <div class="spec-pill"><strong>Modes:</strong> Built-in AI · Custom AI Code (Sandboxed Worker) · 1P / 2P Local PvP</div>
+        <div class="spec-pill"><strong>P1:</strong> W/S Drive · A/D Turn · Space/F Fire</div>
+        <div class="spec-pill"><strong>P2:</strong> ↑/↓ Drive · ←/→ Turn · Enter/RShift Fire</div>
+        <div class="spec-pill"><strong>Inspect:</strong> View each AI's Algorithm &amp; Design Thoughts anytime</div>
+      </footer>
+    </main>
+
+    <!-- BATTLE ARENA SCREEN -->
+    <main id="arena-screen" class="arena-screen hidden">
+      <div class="arena-layout">
+        <!-- Left: 900x660 Canvas Stage -->
+        <div class="canvas-stage">
+          <div class="canvas-frame">
+            <canvas id="arena-canvas" width="900" height="660"></canvas>
+
+            <!-- Pause Badge -->
+            <div id="pause-overlay" class="pause-overlay hidden">
+              <div class="pause-pill">MATCH PAUSED</div>
+            </div>
+
+            <!-- Victory Podium Overlay -->
+            <div id="victory-overlay" class="victory-overlay hidden">
+              <div class="victory-card">
+                <div class="victory-badge" id="victory-badge">MATCH COMPLETE</div>
+                <div class="victory-winner">
+                  <div class="winner-swatch" id="winner-swatch"></div>
+                  <div>
+                    <h2 id="winner-name">Winner Name</h2>
+                    <p id="winner-meta">Role · Remaining HP</p>
+                  </div>
+                </div>
+
+                <div class="podium-table-wrap">
+                  <table class="podium-table">
+                    <thead>
+                      <tr>
+                        <th>Rank</th>
+                        <th>Robot</th>
+                        <th>Role</th>
+                        <th>Kills</th>
+                        <th>Acc</th>
+                        <th>Dmg</th>
+                        <th>Inspect</th>
+                      </tr>
+                    </thead>
+                    <tbody id="podium-tbody"></tbody>
+                  </table>
+                </div>
+
+                <div class="victory-actions">
+                  <button type="button" id="btn-open-analysis" class="btn btn-accent">Post-Match AI Analysis</button>
+                  <button type="button" id="btn-victory-autotrain" class="btn btn-secondary" title="Auto-run 5 fast matches at 4× speed to evolve AI brains">Auto-Train ×5</button>
+                  <button type="button" id="btn-rematch-new" class="btn btn-primary">Rematch (New Maze)</button>
+                  <button type="button" id="btn-rematch-same" class="btn btn-secondary">Same Maze</button>
+                  <button type="button" id="btn-victory-setup" class="btn btn-ghost">Edit Robots</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="arena-legend-bar" aria-label="Special Wall Tiles and Controls Legend">
+            <div class="legend-group">
+              <span class="legend-chip" style="--chip-color:#0891b2;--chip-soft:#cffafe;"><b>+R</b> Range +350px &amp; +2 Bounces</span>
+              <span class="legend-chip" style="--chip-color:#d97706;--chip-soft:#fef3c7;"><b>»</b> Speed +45%</span>
+              <span class="legend-chip" style="--chip-color:#7e22ce;--chip-soft:#f3e8ff;"><b>3×</b> 3-Way Spread</span>
+              <span class="legend-chip" style="--chip-color:#b45309;--chip-soft:#fef3c7;"><b>◆</b> Pillar +15% Dmg</span>
+            </div>
+            <div class="legend-controls-hint">
+              <span><strong>P1:</strong> WASD · Space · <strong>E</strong> Regen</span>
+              <span><strong>P2:</strong> Arrows · Enter · <strong>.</strong> Regen</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Live HUD Sidebar -->
+        <aside class="hud-sidebar">
+          <div class="hud-cards" id="hud-cards">
+            <!-- 2..4 Live HUD cards rendered by game.js -->
+          </div>
+
+          <div class="telemetry-card">
+            <div class="telemetry-header">
+              <span class="telemetry-title" id="telemetry-theme">Live Telemetry</span>
+              <span id="match-timer" class="match-timer">00:00</span>
+            </div>
+            <div class="telemetry-stats">
+              <div class="stat-box">
+                <span class="stat-label">Shots</span>
+                <strong id="stat-shots">0</strong>
+              </div>
+              <div class="stat-box">
+                <span class="stat-label">Ricochets</span>
+                <strong id="stat-bounces">0</strong>
+              </div>
+              <div class="stat-box">
+                <span class="stat-label">Next Drop</span>
+                <strong id="stat-drop">2.0s</strong>
+              </div>
+            </div>
+            <ul id="battle-feed" class="battle-feed"></ul>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL: COPYABLE AI PROMPT PREVIEW -->
+  <div id="prompt-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="prompt-modal-title">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <div>
+          <h3 id="prompt-modal-title">Copyable Prompt for External AIs</h3>
+          <p class="modal-sub">Paste this into ChatGPT, Claude, Gemini, DeepSeek, or any AI — it automatically reflects your current Arena Rules and asks for bot code + algorithm explanation + design thoughts.</p>
+        </div>
+        <button type="button" class="modal-close" id="btn-close-prompt" aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <textarea id="prompt-preview-text" class="code-textarea prompt-textarea" readonly></textarea>
+      </div>
+      <div class="modal-footer">
+        <span class="modal-status" id="prompt-copy-status">Ready to copy</span>
+        <div class="modal-footer-btns">
+          <button type="button" class="btn btn-secondary" id="btn-close-prompt-2">Close</button>
+          <button type="button" class="btn btn-primary" id="btn-modal-copy-prompt">Copy Full Prompt</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CUSTOM BOT CODE EDITOR & AI THOUGHTS INSPECTOR -->
+  <div id="code-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="code-modal-title">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <div>
+          <div class="code-modal-title-row">
+            <span id="code-modal-dot" class="podium-dot"></span>
+            <h3 id="code-modal-title">Bot Code &amp; AI Strategy</h3>
+            <span id="code-modal-author" class="hud-preset-tag">Custom Code</span>
+          </div>
+          <p class="modal-sub" id="code-modal-sub">Paste the AI's generated <code>const BOT = { name, author, algorithm, thoughts, think(state) }</code> code below, or inspect its working algorithm &amp; design thoughts.</p>
+        </div>
+        <button type="button" class="modal-close" id="btn-close-code" aria-label="Close">×</button>
+      </div>
+
+      <div class="modal-tabs">
+        <button type="button" class="modal-tab active" data-tab="code" id="tab-btn-code">Bot Code (.js)</button>
+        <button type="button" class="modal-tab" data-tab="mind" id="tab-btn-mind">Algorithm &amp; AI Thoughts</button>
+        <button type="button" class="modal-tab" data-tab="brain" id="tab-btn-brain">Self-Learning Brain</button>
+        <div class="modal-tab-tools" id="code-editor-tools">
+          <select id="sample-bot-select" class="select-input select-sm" title="Load a starter example bot">
+            <option value="">Load Example Bot...</option>
+          </select>
+          <label class="ctrl-btn" for="input-upload-js" title="Import a .js bot file">
+            Import .js
+            <input id="input-upload-js" type="file" accept=".js,.txt" class="hidden" />
+          </label>
+          <button type="button" id="btn-download-js" class="ctrl-btn" title="Export bot code as .js">Export .js</button>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <!-- Tab 1: Code Editor -->
+        <div id="tab-panel-code" class="tab-panel">
+          <textarea id="bot-code-textarea" class="code-textarea" spellcheck="false" placeholder="Paste the AI's generated const BOT = { name, author, algorithm, thoughts, think(state) { ... } }; code here..."></textarea>
+        </div>
+
+        <!-- Tab 2: Algorithm & Thoughts Reader -->
+        <div id="tab-panel-mind" class="tab-panel hidden">
+          <div class="mind-grid">
+            <div class="mind-card">
+              <div class="mind-card-head">
+                <span class="mind-badge">WORKING ALGORITHM</span>
+                <h4>How This Robot Operates</h4>
+              </div>
+              <div id="mind-algorithm-view" class="mind-text"></div>
+            </div>
+            <div class="mind-card">
+              <div class="mind-card-head">
+                <span class="mind-badge thoughts">AI DESIGN THOUGHTS</span>
+                <h4>Why the AI Created This Strategy</h4>
+              </div>
+              <div id="mind-thoughts-view" class="mind-text"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 3: Self-Learning Persistent Brain Inspector -->
+        <div id="tab-panel-brain" class="tab-panel hidden">
+          <div class="brain-panel-wrap">
+            <div class="brain-header-bar">
+              <div class="brain-stats-row" id="brain-stats-row"></div>
+              <button type="button" id="btn-reset-brain" class="btn btn-ghost btn-sm" title="Erase this bot's saved learning memory and reset to Gen 0">Reset Brain</button>
+            </div>
+            <div class="brain-grid">
+              <div class="mind-card">
+                <div class="mind-card-head">
+                  <span class="mind-badge brain">EVOLUTION LOG</span>
+                  <h4>What This AI Learned Across Matches</h4>
+                </div>
+                <ul id="brain-log-list" class="brain-log-list"></ul>
+              </div>
+              <div class="mind-card">
+                <div class="mind-card-head">
+                  <span class="mind-badge">LIVE STATE.BRAIN (PERSISTED)</span>
+                  <h4>Stored Weights, Q-Values &amp; Memory</h4>
+                </div>
+                <pre id="brain-json-view" class="brain-json-pre"></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <span class="modal-status" id="code-validation-status">Paste AI code and click Save &amp; Validate</span>
+        <div class="modal-footer-btns">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-code">Close</button>
+          <button type="button" class="btn btn-primary" id="btn-save-code">Save &amp; Validate Bot</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: POST-MATCH ANALYSIS & AI COACHING FEEDBACK -->
+  <div id="analysis-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="analysis-modal-title">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-header">
+        <div>
+          <h3 id="analysis-modal-title">Post-Match Analysis &amp; AI Improvement Report</h3>
+          <p class="modal-sub">Select any robot below to review its exact battle telemetry, diagnosed weaknesses, and copy a tailored feedback prompt back to <strong>Gemini, Grok, ChatGPT, Claude, or DeepSeek</strong> so it can upgrade its code for the rematch.</p>
+        </div>
+        <button type="button" class="modal-close" id="btn-close-analysis" aria-label="Close">×</button>
+      </div>
+
+      <div class="analysis-bot-tabs" id="analysis-bot-tabs">
+        <!-- Populated dynamically with one pill per match robot -->
+      </div>
+
+      <div class="modal-body analysis-body">
+        <div class="analysis-metrics-grid" id="analysis-metrics-grid">
+          <!-- Telemetry cards populated dynamically -->
+        </div>
+
+        <div class="analysis-insights-box">
+          <div class="analysis-section-head">
+            <span class="mind-badge thoughts">AUTOMATED DIAGNOSTICS</span>
+            <h4>What Happened &amp; How to Improve</h4>
+          </div>
+          <ul id="analysis-insights-list" class="analysis-insights-list"></ul>
+        </div>
+
+        <div class="analysis-prompt-box">
+          <div class="analysis-section-head">
+            <span class="mind-badge">FEEDBACK PROMPT FOR AI</span>
+            <h4 id="analysis-prompt-heading">Copy &amp; Send Back to AI Model</h4>
+          </div>
+          <textarea id="analysis-feedback-text" class="code-textarea analysis-textarea" readonly></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <span class="modal-status" id="analysis-copy-status">Select a bot and copy its tailored coaching report</span>
+        <div class="modal-footer-btns">
+          <button type="button" class="btn btn-secondary" id="btn-close-analysis-2">Close</button>
+          <button type="button" class="btn btn-accent" id="btn-copy-analysis">Copy Feedback Prompt for AI</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js?v=13"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+# OS & File Explorer artifacts
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor & IDE directories
+.vscode/
+.idea/
+*.swp
+
+# Logs & temporary files
+*.log
+node_modules/
