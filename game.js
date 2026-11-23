@@ -7197,6 +7197,7 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
 
     // Switch screen visibility
     screenMode = 'arena';
+    document.body.classList.add('arena-active');
     setupScreen.classList.add('hidden');
     arenaScreen.classList.remove('hidden');
     battleControls.classList.remove('hidden');
@@ -9132,6 +9133,7 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
     SoundEngine.stopBgm();
     terminateAllCodeWorkers();
     screenMode = 'setup';
+    document.body.classList.remove('arena-active');
     isPaused = false;
     arenaScreen.classList.add('hidden');
     battleControls.classList.add('hidden');

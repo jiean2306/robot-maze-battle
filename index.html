@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=JetBrains+Mono:wght@500;700&family=Silkscreen:wght@400;700&display=swap" />
-  <link rel="stylesheet" href="style.css?v=14" />
+  <link rel="stylesheet" href="style.css?v=15" />
 </head>
 <body>
   <div class="app-shell">
@@ -223,51 +223,53 @@
       <div class="arena-layout">
         <!-- Left: 900x660 Canvas Stage -->
         <div class="canvas-stage">
-          <div class="canvas-frame">
-            <canvas id="arena-canvas" width="900" height="660"></canvas>
+          <div class="canvas-fit-slot">
+            <div class="canvas-frame">
+              <canvas id="arena-canvas" width="900" height="660"></canvas>
 
-            <!-- Pause Badge -->
-            <div id="pause-overlay" class="pause-overlay hidden">
-              <div class="pause-pill">MATCH PAUSED</div>
-            </div>
+              <!-- Pause Badge -->
+              <div id="pause-overlay" class="pause-overlay hidden">
+                <div class="pause-pill">MATCH PAUSED</div>
+              </div>
 
-            <!-- Victory Podium Overlay -->
-            <div id="victory-overlay" class="victory-overlay hidden">
-              <div class="victory-card">
-                <div class="victory-badge" id="victory-badge">MATCH COMPLETE</div>
-                <div class="victory-winner">
-                  <div class="winner-swatch" id="winner-swatch"></div>
-                  <div>
-                    <h2 id="winner-name">Winner Name</h2>
-                    <p id="winner-meta">Role · Remaining HP</p>
+              <!-- Victory Podium Overlay -->
+              <div id="victory-overlay" class="victory-overlay hidden">
+                <div class="victory-card">
+                  <div class="victory-badge" id="victory-badge">MATCH COMPLETE</div>
+                  <div class="victory-winner">
+                    <div class="winner-swatch" id="winner-swatch"></div>
+                    <div>
+                      <h2 id="winner-name">Winner Name</h2>
+                      <p id="winner-meta">Role · Remaining HP</p>
+                    </div>
                   </div>
-                </div>
 
-                <div class="podium-table-wrap">
-                  <table class="podium-table">
-                    <thead>
-                      <tr>
-                        <th>Rank</th>
-                        <th>Robot</th>
-                        <th>Role</th>
-                        <th>Kills</th>
-                        <th>Acc</th>
-                        <th>Dmg</th>
-                        <th>Inspect</th>
-                      </tr>
-                    </thead>
-                    <tbody id="podium-tbody"></tbody>
-                  </table>
-                </div>
+                  <div class="podium-table-wrap">
+                    <table class="podium-table">
+                      <thead>
+                        <tr>
+                          <th>Rank</th>
+                          <th>Robot</th>
+                          <th>Role</th>
+                          <th>Kills</th>
+                          <th>Acc</th>
+                          <th>Dmg</th>
+                          <th>Inspect</th>
+                        </tr>
+                      </thead>
+                      <tbody id="podium-tbody"></tbody>
+                    </table>
+                  </div>
 
-                <div class="victory-actions">
-                  <button type="button" id="btn-next-series-match" class="btn btn-primary hidden">Next Match (1/5)</button>
-                  <button type="button" id="btn-victory-leaderboard" class="btn btn-accent">Leaderboard</button>
-                  <button type="button" id="btn-open-analysis" class="btn btn-secondary">AI Analysis</button>
-                  <button type="button" id="btn-victory-autotrain" class="btn btn-secondary" title="Auto-run remaining series matches at 4× speed">Auto-Run Series</button>
-                  <button type="button" id="btn-rematch-new" class="btn btn-primary">New Match</button>
-                  <button type="button" id="btn-rematch-same" class="btn btn-secondary">Same Maze</button>
-                  <button type="button" id="btn-victory-setup" class="btn btn-ghost">Setup</button>
+                  <div class="victory-actions">
+                    <button type="button" id="btn-next-series-match" class="btn btn-primary hidden">Next Match (1/5)</button>
+                    <button type="button" id="btn-victory-leaderboard" class="btn btn-accent">Leaderboard</button>
+                    <button type="button" id="btn-open-analysis" class="btn btn-secondary">AI Analysis</button>
+                    <button type="button" id="btn-victory-autotrain" class="btn btn-secondary" title="Auto-run remaining series matches at 4× speed">Auto-Run Series</button>
+                    <button type="button" id="btn-rematch-new" class="btn btn-primary">New Match</button>
+                    <button type="button" id="btn-rematch-same" class="btn btn-secondary">Same Maze</button>
+                    <button type="button" id="btn-victory-setup" class="btn btn-ghost">Setup</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -648,6 +650,6 @@
     </div>
   </div>
 
-  <script src="game.js?v=14"></script>
+  <script src="game.js?v=15"></script>
 </body>
 </html>
