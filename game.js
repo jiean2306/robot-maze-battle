@@ -2437,7 +2437,130 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
     return runner;
   }
 
+  // ==================== CUSTOM ROBOT SKINS & WORKSHOP CATALOG ====================
+  const SKINS_STORAGE_KEY = 'mazebots_skins_v1';
+  const LEADERBOARD_STORAGE_KEY = 'mazebots_leaderboard_v1';
+
+  const SKIN_PRIMARY_COLORS = [
+    '#ef4444', '#f97316', '#f59e0b', '#84cc16',
+    '#10b981', '#06b6d4', '#2563eb', '#6366f1',
+    '#8b5cf6', '#ec4899', '#e11d48', '#475569'
+  ];
+
+  const SKIN_ACCENT_COLORS = [
+    '#fef08a', '#ffffff', '#bae6fd', '#bbf7d0', '#fbcfe8',
+    '#fed7aa', '#ddd6fe', '#a7f3d0', '#fde047', '#38bdf8'
+  ];
+
+  const SKIN_OPTIONS = {
+    body: [
+      { id: 'boxy', label: 'Arcade Box' },
+      { id: 'heavy', label: 'Heavy Tank' },
+      { id: 'octa', label: 'Octa Armor' },
+      { id: 'delta', label: 'Stealth Jet' },
+      { id: 'capsule', label: 'Bean Pod' },
+      { id: 'hex', label: 'Hex Core' }
+    ],
+    wheels: [
+      { id: 'treads', label: 'Pixel Treads' },
+      { id: 'monster', label: 'Monster Tires' },
+      { id: 'hover', label: 'Hover Jets' },
+      { id: 'spiked', label: 'Spike Rollers' },
+      { id: 'sleds', label: 'Twin Sleds' }
+    ],
+    cannon: [
+      { id: 'standard', label: 'Standard' },
+      { id: 'twin', label: 'Twin Blasters' },
+      { id: 'mortar', label: 'Chunky Mortar' },
+      { id: 'rail', label: 'Rail Coil' }
+    ],
+    emblem: [
+      { id: 'eyes', label: 'Pixel Eyes' },
+      { id: 'visor', label: 'Cyber Visor' },
+      { id: 'star', label: 'Hero Star' },
+      { id: 'gemini', label: 'Gemini' },
+      { id: 'claude', label: 'Claude' },
+      { id: 'chatgpt', label: 'ChatGPT' },
+      { id: 'grok', label: 'Grok' },
+      { id: 'deepseek', label: 'DeepSeek' }
+    ],
+    accessory: [
+      { id: 'none', label: 'None' },
+      { id: 'crown', label: 'Gold Crown' },
+      { id: 'bandana', label: 'Ninja Bandana' },
+      { id: 'antenna', label: 'Radar Antenna' },
+      { id: 'catears', label: 'Cat Ears' },
+      { id: 'horns', label: 'Viking Horns' },
+      { id: 'propeller', label: 'Spin Beanie' },
+      { id: 'halo', label: 'Pixel Halo' }
+    ],
+    trail: [
+      { id: 'treads', label: 'Tread Marks' },
+      { id: 'stars', label: 'Pixel Stars' },
+      { id: 'smoke', label: 'Comic Puffs' },
+      { id: 'sparks', label: 'Turbo Sparks' },
+      { id: 'rainbow', label: 'Rainbow Bits' }
+    ]
+  };
+
+  const DEFAULT_SLOT_SKINS = [
+    { primary: '#ef4444', accent: '#fef08a', body: 'heavy', wheels: 'treads', cannon: 'standard', emblem: 'star', accessory: 'bandana', trail: 'sparks' },
+    { primary: '#2563eb', accent: '#bae6fd', body: 'octa', wheels: 'hover', cannon: 'rail', emblem: 'visor', accessory: 'antenna', trail: 'stars' },
+    { primary: '#10b981', accent: '#bbf7d0', body: 'capsule', wheels: 'monster', cannon: 'twin', emblem: 'eyes', accessory: 'propeller', trail: 'smoke' },
+    { primary: '#f59e0b', accent: '#ffffff', body: 'delta', wheels: 'spiked', cannon: 'mortar', emblem: 'eyes', accessory: 'crown', trail: 'rainbow' }
+  ];
+
+  const SKIN_PRESETS = [
+    { id: 'arcade', label: 'Arcade Hero', skin: { primary: '#ef4444', accent: '#fef08a', body: 'heavy', wheels: 'treads', cannon: 'twin', emblem: 'star', accessory: 'crown', trail: 'sparks' } },
+    { id: 'kitty', label: 'Hover Kitty', skin: { primary: '#ec4899', accent: '#fbcfe8', body: 'capsule', wheels: 'hover', cannon: 'standard', emblem: 'eyes', accessory: 'catears', trail: 'rainbow' } },
+    { id: 'ninja', label: 'Cyber Ninja', skin: { primary: '#6366f1', accent: '#bae6fd', body: 'delta', wheels: 'sleds', cannon: 'rail', emblem: 'visor', accessory: 'bandana', trail: 'stars' } },
+    { id: 'viking', label: 'Viking Boss', skin: { primary: '#f97316', accent: '#fed7aa', body: 'heavy', wheels: 'spiked', cannon: 'mortar', emblem: 'eyes', accessory: 'horns', trail: 'smoke' } },
+    { id: 'royal', label: 'Pixel Mech', skin: { primary: '#06b6d4', accent: '#ffffff', body: 'octa', wheels: 'monster', cannon: 'twin', emblem: 'visor', accessory: 'antenna', trail: 'treads' } }
+  ];
+
+  function hexToSoftTint(hex) {
+    const clean = String(hex || '#64748b').replace('#', '');
+    if (!/^[0-9a-f]{6}$/i.test(clean)) return '#f1f5f9';
+    const r = Math.round(parseInt(clean.slice(0, 2), 16) * 0.18 + 255 * 0.82);
+    const g = Math.round(parseInt(clean.slice(2, 4), 16) * 0.18 + 255 * 0.82);
+    const b = Math.round(parseInt(clean.slice(4, 6), 16) * 0.18 + 255 * 0.82);
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  }
+
+  function sanitizeSkin(raw, fallbackIdx = 0) {
+    const fb = DEFAULT_SLOT_SKINS[fallbackIdx % DEFAULT_SLOT_SKINS.length];
+    if (!raw || typeof raw !== 'object') return { ...fb };
+    const pickValid = (arr, val, def) => (arr.some(o => o.id === val) ? val : def);
+    return {
+      primary: /^#[0-9a-f]{6}$/i.test(raw.primary || '') ? raw.primary : fb.primary,
+      accent: /^#[0-9a-f]{6}$/i.test(raw.accent || '') ? raw.accent : fb.accent,
+      body: pickValid(SKIN_OPTIONS.body, raw.body, fb.body),
+      wheels: pickValid(SKIN_OPTIONS.wheels, raw.wheels, fb.wheels),
+      cannon: pickValid(SKIN_OPTIONS.cannon, raw.cannon, fb.cannon),
+      emblem: pickValid(SKIN_OPTIONS.emblem, raw.emblem, fb.emblem),
+      accessory: pickValid(SKIN_OPTIONS.accessory, raw.accessory, fb.accessory),
+      trail: pickValid(SKIN_OPTIONS.trail, raw.trail, fb.trail)
+    };
+  }
+
+  function loadSavedSkins() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(SKINS_STORAGE_KEY) || 'null');
+      if (Array.isArray(raw)) {
+        return BOT_SLOTS.map((_, i) => sanitizeSkin(raw[i], i));
+      }
+    } catch (_) {}
+    return BOT_SLOTS.map((_, i) => ({ ...DEFAULT_SLOT_SKINS[i] }));
+  }
+
+  function persistAllSkins() {
+    try {
+      localStorage.setItem(SKINS_STORAGE_KEY, JSON.stringify(botConfigs.map(c => c.skin)));
+    } catch (_) {}
+  }
+
   // ==================== APP STATE ====================
+  const savedSkins = loadSavedSkins();
   const botConfigs = BOT_SLOTS.map((slot, idx) => {
     const preset = AI_PRESETS[slot.defaultPreset];
     const sample = SAMPLE_CODE_BOTS[idx % SAMPLE_CODE_BOTS.length];
@@ -2449,6 +2572,7 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
       aggression: preset.defaults.aggression,
       caution: preset.defaults.caution,
       ricochet: preset.defaults.ricochet,
+      skin: savedSkins[idx],
       // Custom AI-coded robot fields
       codeSource: sample.source,
       codeAuthor: sample.label.split(':')[1]?.trim() || 'Sample AI',
@@ -2526,11 +2650,42 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
   let lastRankedBots = [];
   let selectedAnalysisBotId = 0;
 
-  // Auto-Train Multi-Match Evolution State
+  // Auto-Train Multi-Match Evolution State & Persistent Tournament Leaderboard
   let autoTrainRemaining = 0;
   let autoTrainTotal = 5;
   let autoTrainTimerId = null;
   let prevSpeedBeforeTrain = 1;
+  let editingSkinSlotIdx = 0;
+  let skinPreviewTestShot = null;
+
+  let leaderboardState = {
+    seriesTargetMatches: 5,
+    seriesCompletedMatches: 0,
+    sortKey: 'points',
+    entries: {},
+    history: []
+  };
+
+  function loadLeaderboardState() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(LEADERBOARD_STORAGE_KEY) || 'null');
+      if (raw && typeof raw === 'object') {
+        leaderboardState.seriesTargetMatches = clamp(Math.round(Number(raw.seriesTargetMatches) || 5), 1, 50);
+        leaderboardState.seriesCompletedMatches = Math.max(0, Math.round(Number(raw.seriesCompletedMatches) || 0));
+        leaderboardState.sortKey = typeof raw.sortKey === 'string' ? raw.sortKey : 'points';
+        leaderboardState.entries = raw.entries && typeof raw.entries === 'object' ? raw.entries : {};
+        leaderboardState.history = Array.isArray(raw.history) ? raw.history.slice(0, 50) : [];
+      }
+    } catch (_) {}
+  }
+
+  function saveLeaderboardState() {
+    try {
+      localStorage.setItem(LEADERBOARD_STORAGE_KEY, JSON.stringify(leaderboardState));
+    } catch (_) {}
+  }
+
+  loadLeaderboardState();
 
   let matchStats = {
     totalShots: 0,
@@ -2546,11 +2701,17 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
   const btnBgm = document.getElementById('btn-bgm');
   const btnSfx = document.getElementById('btn-sfx');
   const themePill = document.getElementById('theme-pill');
+  const seriesPill = document.getElementById('series-pill');
   const telemetryThemeEl = document.getElementById('telemetry-theme');
 
   const btnCountMinus = document.getElementById('btn-count-minus');
   const btnCountPlus = document.getElementById('btn-count-plus');
   const botCountDisplay = document.getElementById('bot-count-display');
+  const btnSeriesMinus = document.getElementById('btn-series-minus');
+  const btnSeriesPlus = document.getElementById('btn-series-plus');
+  const seriesCountInput = document.getElementById('series-count-input');
+  const btnOpenLbSetup = document.getElementById('btn-open-leaderboard-setup');
+  const btnOpenLbArena = document.getElementById('btn-open-leaderboard-arena');
   const btnQuickPvp = document.getElementById('btn-quick-pvp');
   const btnQuickCode = document.getElementById('btn-quick-code');
   const btnRandomize = document.getElementById('btn-randomize');
@@ -2627,6 +2788,40 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
   const btnCloseAnalysis2 = document.getElementById('btn-close-analysis-2');
   const btnCopyAnalysis = document.getElementById('btn-copy-analysis');
 
+  // Skin Workshop Modal DOM
+  const skinModal = document.getElementById('skin-modal');
+  const skinModalDot = document.getElementById('skin-modal-dot');
+  const skinModalTitle = document.getElementById('skin-modal-title');
+  const skinPreviewCanvas = document.getElementById('skin-preview-canvas');
+  const skinPreviewCtx = skinPreviewCanvas ? skinPreviewCanvas.getContext('2d') : null;
+  const btnCloseSkin = document.getElementById('btn-close-skin');
+  const btnCloseSkin2 = document.getElementById('btn-close-skin-2');
+  const btnSkinTestFire = document.getElementById('btn-skin-test-fire');
+  const btnSkinRandomize = document.getElementById('btn-skin-randomize');
+  const btnSkinReset = document.getElementById('btn-skin-reset');
+  const skinPresetsRow = document.getElementById('skin-presets-row');
+  const skinPrimaryPicker = document.getElementById('skin-primary-picker');
+  const skinAccentPicker = document.getElementById('skin-accent-picker');
+  const skinPrimarySwatches = document.getElementById('skin-primary-swatches');
+  const skinAccentSwatches = document.getElementById('skin-accent-swatches');
+  const skinBodyOptions = document.getElementById('skin-body-options');
+  const skinWheelsOptions = document.getElementById('skin-wheels-options');
+  const skinCannonOptions = document.getElementById('skin-cannon-options');
+  const skinEmblemOptions = document.getElementById('skin-emblem-options');
+  const skinAccessoryOptions = document.getElementById('skin-accessory-options');
+  const skinTrailOptions = document.getElementById('skin-trail-options');
+
+  // Tournament Leaderboard Modal DOM
+  const leaderboardModal = document.getElementById('leaderboard-modal');
+  const lbProgressBadge = document.getElementById('lb-progress-badge');
+  const lbLeaderBanner = document.getElementById('lb-leader-banner');
+  const lbSortBar = document.getElementById('lb-sort-bar');
+  const lbTbody = document.getElementById('lb-tbody');
+  const lbMatchHistory = document.getElementById('lb-match-history');
+  const btnCloseLb = document.getElementById('btn-close-lb');
+  const btnCloseLb2 = document.getElementById('btn-close-lb-2');
+  const btnResetLb = document.getElementById('btn-reset-leaderboard');
+
   const canvas = document.getElementById('arena-canvas');
   const ctx = canvas.getContext('2d');
   const pauseOverlay = document.getElementById('pause-overlay');
@@ -2636,6 +2831,8 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
   const winnerNameEl = document.getElementById('winner-name');
   const winnerMetaEl = document.getElementById('winner-meta');
   const podiumTbody = document.getElementById('podium-tbody');
+  const btnNextSeriesMatch = document.getElementById('btn-next-series-match');
+  const btnVictoryLb = document.getElementById('btn-victory-leaderboard');
   const btnRematchNew = document.getElementById('btn-rematch-new');
   const btnVictoryAutoTrain = document.getElementById('btn-victory-autotrain');
   const btnRematchSame = document.getElementById('btn-rematch-same');
@@ -2794,10 +2991,18 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
     renderSetupCards();
   }
 
+  function getOptionLabel(group, id) {
+    const found = (SKIN_OPTIONS[group] || []).find(o => o.id === id);
+    return found ? found.label : id;
+  }
+
   function renderSetupCards() {
     botCountDisplay.textContent = String(activeBotCount);
     btnCountMinus.disabled = activeBotCount <= 2;
     btnCountPlus.disabled = activeBotCount >= 4;
+    if (seriesCountInput) {
+      seriesCountInput.value = String(leaderboardState.seriesTargetMatches);
+    }
 
     botConfigGrid.className = `bot-config-grid count-${activeBotCount}`;
     botConfigGrid.innerHTML = '';
@@ -2807,13 +3012,17 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
     for (let idx = 0; idx < activeBotCount; idx++) {
       const slot = BOT_SLOTS[idx];
       const cfg = botConfigs[idx];
+      const skin = sanitizeSkin(cfg.skin, idx);
+      cfg.skin = skin;
+      const cardColor = skin.primary;
+      const cardSoft = hexToSoftTint(cardColor);
       const preset = AI_PRESETS[cfg.presetId];
       const isHuman = cfg.role === 'p1' || cfg.role === 'p2';
       const isCode = cfg.role === 'code';
 
       const card = document.createElement('div');
       card.className = `bot-card${isHuman || isCode ? ' player-card-active' : ''}`;
-      card.style.setProperty('--bot-color', slot.color);
+      card.style.setProperty('--bot-color', cardColor);
 
       const optionsHtml = PRESET_LIST.map(p =>
         `<option value="${p.id}" ${p.id === cfg.presetId ? 'selected' : ''}>${p.name}</option>`
@@ -2923,19 +3132,17 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
         `;
       }
 
+      const skinSummaryText = `${getOptionLabel('body', skin.body)} · ${getOptionLabel('wheels', skin.wheels)}${skin.accessory !== 'none' ? ` · ${getOptionLabel('accessory', skin.accessory)}` : ''}`;
+
       card.innerHTML = `
-        <div class="bot-card-accent" style="background: ${slot.color};"></div>
+        <div class="bot-card-accent" style="background: ${cardColor};"></div>
         <div class="bot-card-body">
           <div class="bot-card-head">
-            <span class="bot-slot-badge" style="background: ${slot.soft}; color: ${slot.dark};">
+            <span class="bot-slot-badge" style="background: ${cardSoft}; color: #161e2e; border: 1.5px solid #1e293b;">
               ${slot.slotLabel}
             </span>
-            <div class="bot-avatar" style="background: ${slot.soft}; color: ${slot.color};">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="7" fill="currentColor" opacity="0.22"/>
-                <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/>
-                <line x1="12" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
-              </svg>
+            <div class="bot-avatar" style="background: ${cardSoft}; color: ${cardColor}; border: 1.5px solid #1e293b;">
+              <canvas id="mini-skin-${idx}" width="42" height="42" style="width:30px;height:30px;"></canvas>
             </div>
           </div>
 
@@ -2944,6 +3151,17 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
             <button type="button" class="role-btn ${cfg.role === 'code' ? 'active role-code' : ''}" data-role="code">Code</button>
             <button type="button" class="role-btn ${cfg.role === 'p1' ? 'active role-human' : ''}" data-role="p1">P1</button>
             <button type="button" class="role-btn ${cfg.role === 'p2' ? 'active role-human' : ''}" data-role="p2">P2</button>
+          </div>
+
+          <div class="bot-skin-bar">
+            <div class="bot-mini-wrap">
+              <canvas class="bot-mini-preview" id="mini-skin-card-${idx}" width="42" height="42"></canvas>
+              <div class="bot-skin-summary">
+                <strong>Custom Look</strong>
+                <span>${escapeHtml(skinSummaryText)}</span>
+              </div>
+            </div>
+            <button type="button" class="ctrl-btn" id="btn-customize-skin-${idx}">Customize</button>
           </div>
 
           <div class="field-group">
@@ -2956,6 +3174,29 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
       `;
 
       botConfigGrid.appendChild(card);
+
+      // Render miniature live robot skin previews onto both canvases
+      const miniHead = card.querySelector(`#mini-skin-${idx}`);
+      if (miniHead) {
+        const mctx = miniHead.getContext('2d');
+        mctx.save();
+        mctx.translate(21, 21);
+        renderRobotSprite(mctx, skin, { bodyAngle: -0.35, recoil: 0, hitFlash: 0, time: 0.4, distanceTraveled: 0, isPlayer: isHuman, scale: 1.08 });
+        mctx.restore();
+      }
+      const miniBar = card.querySelector(`#mini-skin-card-${idx}`);
+      if (miniBar) {
+        const bctx = miniBar.getContext('2d');
+        bctx.save();
+        bctx.translate(21, 21);
+        renderRobotSprite(bctx, skin, { bodyAngle: -0.35, recoil: 0, hitFlash: 0, time: 0.4, distanceTraveled: 0, isPlayer: isHuman, scale: 1.05 });
+        bctx.restore();
+      }
+
+      card.querySelector(`#btn-customize-skin-${idx}`).addEventListener('click', () => {
+        SoundEngine.unlock();
+        openSkinModal(idx);
+      });
 
       // Role selector listeners
       card.querySelectorAll('.role-btn').forEach(btn => {
@@ -2976,6 +3217,11 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
             cfg.name = chip.dataset.model;
             if (!cfg.codeAuthor || cfg.codeAuthor.startsWith('Sample')) {
               cfg.codeAuthor = chip.dataset.model;
+            }
+            const low = chip.dataset.model.toLowerCase();
+            if (SKIN_OPTIONS.emblem.some(o => o.id === low)) {
+              cfg.skin.emblem = low;
+              persistAllSkins();
             }
             renderSetupCards();
           });
@@ -3371,17 +3617,25 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
     mctx.fillStyle = th.floor;
     mctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-    // Subtle central arena plaza tint + thematic floor centerpiece
+    // Pixel-nostalgic checkerboard tiles inside central arena plaza
     mctx.fillStyle = th.plaza;
     mctx.fillRect(17 * TILE, 13 * TILE, 11 * TILE, 7 * TILE);
+    mctx.fillStyle = 'rgba(30, 41, 59, 0.035)';
+    for (let py = 13; py < 20; py++) {
+      for (let px = 17; px < 28; px++) {
+        if ((px + py) % 2 === 0) {
+          mctx.fillRect(px * TILE, py * TILE, TILE, TILE);
+        }
+      }
+    }
     mctx.strokeStyle = th.plazaBorder;
-    mctx.lineWidth = 1.25;
+    mctx.lineWidth = 1.5;
     mctx.strokeRect(17 * TILE + 0.5, 13 * TILE + 0.5, 11 * TILE - 1, 7 * TILE - 1);
 
-    // Subtle central ring emblem
+    // Subtle central retro pixel emblem
     mctx.save();
     mctx.strokeStyle = th.plazaBorder;
-    mctx.lineWidth = 1.25;
+    mctx.lineWidth = 1.5;
     mctx.beginPath();
     mctx.arc(CANVAS_W * 0.5, CANVAS_H * 0.5, 44, 0, Math.PI * 2);
     mctx.stroke();
@@ -3405,7 +3659,7 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
     }
     mctx.stroke();
 
-    // 2. Soft architectural wall drop shadows
+    // 2. Hard comic-pixel wall drop shadows
     mctx.fillStyle = th.shadow;
     for (let ty = 0; ty < GRID_H; ty++) {
       for (let tx = 0; tx < GRID_W; tx++) {
@@ -3415,7 +3669,7 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
       }
     }
 
-    // 3. Draw walls & central pillars with crisp 2.5D bevel feel
+    // 3. Draw pixel-brick walls, cartoon bumper pillars & special candy tiles
     for (let ty = 0; ty < GRID_H; ty++) {
       for (let tx = 0; tx < GRID_W; tx++) {
         const cell = grid[ty][tx];
@@ -3427,26 +3681,41 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
           mctx.fillStyle = th.wallFill;
           mctx.fillRect(x, y, TILE, TILE);
 
+          // Stepped 16-bit top pixel highlight & brick mortar lines
           mctx.fillStyle = th.wallHighlight;
-          mctx.fillRect(x, y, TILE, 3);
+          mctx.fillRect(x, y, TILE, 4);
+
+          mctx.fillStyle = 'rgba(30, 41, 59, 0.14)';
+          mctx.fillRect(x, y + 9, TILE, 1.5);
+          mctx.fillRect(x + ((tx + ty) % 2 === 0 ? 6 : 13), y + 4, 1.5, 5);
+          mctx.fillRect(x + ((tx + ty) % 2 === 0 ? 14 : 5), y + 10, 1.5, 6);
 
           if (ty + 1 < GRID_H && grid[ty + 1][tx] === 0) {
             mctx.fillStyle = th.wallLip;
             mctx.fillRect(x, y + TILE - 4, TILE, 4);
           }
+
+          // Pixel rivet dot on free outer corners
+          if (tx > 0 && grid[ty][tx - 1] === 0 && ty > 0 && grid[ty - 1][tx] === 0) {
+            mctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
+            mctx.fillRect(x + 2, y + 2, 2, 2);
+          }
         } else if (cell === 2) {
-          // Reinforced Booster Cover Pillar (bouncing here supercharges shots!)
+          // Cartoon-pixel Reinforced Booster Pillar (+15% dmg bounce!)
           mctx.fillStyle = th.pillarFill;
           mctx.fillRect(x, y, TILE, TILE);
 
           mctx.fillStyle = th.pillarInner;
-          mctx.fillRect(x + 2, y + 2, TILE - 4, TILE - 5);
+          mctx.fillRect(x + 3, y + 3, TILE - 6, TILE - 7);
 
-          mctx.strokeStyle = th.pillarOutline;
-          mctx.lineWidth = 1.3;
-          mctx.strokeRect(x + 0.75, y + 0.75, TILE - 1.5, TILE - 1.5);
+          mctx.strokeStyle = '#1e293b';
+          mctx.lineWidth = 2;
+          mctx.strokeRect(x + 1, y + 1, TILE - 2, TILE - 2);
 
-          // Center diamond energy core on pillars
+          // 2x2 pixel white specular shine + diamond pixel core
+          mctx.fillStyle = '#ffffff';
+          mctx.fillRect(x + 3, y + 3, 2, 2);
+
           mctx.fillStyle = th.pillarDot;
           mctx.beginPath();
           mctx.moveTo(x + TILE * 0.5, y + 5);
@@ -3456,30 +3725,33 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
           mctx.closePath();
           mctx.fill();
         } else if (cell >= 3 && cell <= 5) {
-          // Special Bullet-Triggered Wall Tiles (3=Range +R, 4=Speed », 5=Spread 3×)
+          // Special Candy-Bright Cartoon Pixel Wall Tiles (3=Range +R, 4=Speed », 5=Spread 3×)
           const st = SPECIAL_TILE_TYPES[cell];
           mctx.fillStyle = st.soft;
           mctx.fillRect(x, y, TILE, TILE);
 
-          mctx.strokeStyle = st.border;
+          mctx.fillStyle = st.color;
+          mctx.fillRect(x + 2, y + 2, TILE - 4, 4);
+
+          mctx.fillStyle = '#ffffff';
+          mctx.fillRect(x + 3, y + 3, 2.5, 2.5);
+
+          mctx.strokeStyle = '#1e293b';
           mctx.lineWidth = 2;
           mctx.strokeRect(x + 1, y + 1, TILE - 2, TILE - 2);
 
-          mctx.fillStyle = st.color;
-          mctx.fillRect(x + 2, y + 2, TILE - 4, 3);
-
-          mctx.font = '800 9px "JetBrains Mono", Consolas, monospace';
+          mctx.font = '800 9px "Silkscreen", "JetBrains Mono", Consolas, monospace';
           mctx.textAlign = 'center';
           mctx.textBaseline = 'middle';
-          mctx.fillStyle = st.border;
-          mctx.fillText(st.short, x + TILE * 0.5, y + TILE * 0.55);
+          mctx.fillStyle = '#1e293b';
+          mctx.fillText(st.short, x + TILE * 0.5, y + TILE * 0.58);
         }
       }
     }
 
-    // 4. Crisp outer outlines on wall edges touching open floor
-    mctx.strokeStyle = th.wallOutline;
-    mctx.lineWidth = 1.25;
+    // 4. Bold comic-ink outlines on wall edges touching open corridors
+    mctx.strokeStyle = '#1e293b';
+    mctx.lineWidth = 2.2;
     mctx.beginPath();
     for (let ty = 0; ty < GRID_H; ty++) {
       for (let tx = 0; tx < GRID_W; tx++) {
@@ -3487,20 +3759,20 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
         const x = tx * TILE;
         const y = ty * TILE;
         if (ty > 0 && grid[ty - 1][tx] === 0) {
-          mctx.moveTo(x, y + 0.5);
-          mctx.lineTo(x + TILE, y + 0.5);
+          mctx.moveTo(x, y + 0.8);
+          mctx.lineTo(x + TILE, y + 0.8);
         }
         if (ty < GRID_H - 1 && grid[ty + 1][tx] === 0) {
-          mctx.moveTo(x, y + TILE - 0.5);
-          mctx.lineTo(x + TILE, y + TILE - 0.5);
+          mctx.moveTo(x, y + TILE - 0.8);
+          mctx.lineTo(x + TILE, y + TILE - 0.8);
         }
         if (tx > 0 && grid[ty][tx - 1] === 0) {
-          mctx.moveTo(x + 0.5, y);
-          mctx.lineTo(x + 0.5, y + TILE);
+          mctx.moveTo(x + 0.8, y);
+          mctx.lineTo(x + 0.8, y + TILE);
         }
         if (tx < GRID_W - 1 && grid[ty][tx + 1] === 0) {
-          mctx.moveTo(x + TILE - 0.5, y);
-          mctx.lineTo(x + TILE - 0.5, y + TILE);
+          mctx.moveTo(x + TILE - 0.8, y);
+          mctx.lineTo(x + TILE - 0.8, y + TILE);
         }
       }
     }
@@ -3928,9 +4200,13 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
     for (let idx = 0; idx < activeBotCount; idx++) {
       const slot = BOT_SLOTS[idx];
       const cfg = botConfigs[idx];
+      const botSkin = sanitizeSkin(cfg.skin, idx);
+      cfg.skin = botSkin;
+      const botColor = botSkin.primary;
+      const botSoft = hexToSoftTint(botColor);
       const spawn = randomSpawns[idx];
       const pos = { x: spawn.x, y: spawn.y };
-      matchSpawnPads.push({ x: pos.x, y: pos.y, color: slot.color, soft: slot.soft });
+      matchSpawnPads.push({ x: pos.x, y: pos.y, color: botColor, soft: botSoft });
       const role = cfg.role; // 'ai' | 'code' | 'p1' | 'p2'
       const isPlayer = role === 'p1' || role === 'p2';
       const isCode = role === 'code';
@@ -3966,9 +4242,10 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
         presetId: isPlayer ? role : isCode ? 'code' : preset.id,
         presetName: role === 'p1' ? 'Player 1' : role === 'p2' ? 'Player 2' : isCode ? (cfg.codeAuthor || 'Custom AI Code') : preset.name,
         presetShort: role === 'p1' ? 'P1' : role === 'p2' ? 'P2' : isCode ? 'CODE' : preset.shortName,
-        color: slot.color,
-        soft: slot.soft,
-        dark: slot.dark,
+        color: botColor,
+        soft: botSoft,
+        dark: '#161e2e',
+        skin: botSkin,
 
         // Tunable AI weights (0..1)
         agg,
@@ -6265,9 +6542,10 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
         recordTimeline(elimMsg);
       }
 
-      // Dramatic light-mode elimination burst + floor scorch mark
+      // Dramatic light-mode elimination burst + floor scorch mark + comic callout
       scorchMarks.push({ x: target.x, y: target.y, color: target.color, name: target.name });
       spawnParticles(target.x, target.y, target.color, 26, 210, 0.58);
+      spawnFloatingText(target.x, target.y - 8, randChoice(['POW!', 'BOOM!', 'ZAP!', 'KO!']), target.color);
       particles.push({
         type: 'ring',
         x: target.x,
@@ -6512,10 +6790,10 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
     if (!btnAutoTrain) return;
     if (autoTrainRemaining > 0) {
       const done = autoTrainTotal - autoTrainRemaining + 1;
-      btnAutoTrain.textContent = `Training ${done}/${autoTrainTotal} (Stop)`;
+      btnAutoTrain.textContent = `Running ${done}/${autoTrainTotal} (Stop)`;
       btnAutoTrain.classList.add('train-active');
     } else {
-      btnAutoTrain.textContent = 'Auto-Train ×5';
+      btnAutoTrain.textContent = `Auto-Run Series (${leaderboardState.seriesTargetMatches})`;
       btnAutoTrain.classList.remove('train-active');
     }
   }
@@ -6533,17 +6811,112 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
     }
   }
 
-  function startAutoTrain(rounds = 5) {
+  function startAutoTrain(rounds) {
+    const targetRounds = (typeof rounds === 'number' && rounds > 0)
+      ? rounds
+      : (leaderboardState.seriesCompletedMatches < leaderboardState.seriesTargetMatches
+          ? (leaderboardState.seriesTargetMatches - leaderboardState.seriesCompletedMatches)
+          : leaderboardState.seriesTargetMatches);
     stopAutoTrain(false);
     prevSpeedBeforeTrain = matchSpeed === 4 ? 1 : matchSpeed;
-    autoTrainTotal = rounds;
-    autoTrainRemaining = rounds;
+    autoTrainTotal = targetRounds;
+    autoTrainRemaining = targetRounds;
     setMatchSpeedUI(4);
     updateAutoTrainButtonUI();
-    pushFeed(`Auto-Train started: running ${rounds} fast matches at 4× speed so AIs evolve!`, '#7c3aed');
+    pushFeed(`Auto-Run Series started: ${targetRounds} fast match${targetRounds === 1 ? '' : 'es'} at 4× speed!`, '#7c3aed');
     if (matchOver || screenMode !== 'arena') {
       startMatch(true);
     }
+  }
+
+  function setSeriesTarget(n) {
+    const clamped = clamp(Math.round(Number(n) || 5), 1, 50);
+    leaderboardState.seriesTargetMatches = clamped;
+    if (seriesCountInput) seriesCountInput.value = clamped;
+    saveLeaderboardState();
+    updateSeriesPillUI();
+    updateAutoTrainButtonUI();
+  }
+
+  function updateSeriesPillUI() {
+    if (!seriesPill) return;
+    const comp = leaderboardState.seriesCompletedMatches;
+    const tgt = leaderboardState.seriesTargetMatches;
+    if (comp >= tgt && comp > 0) {
+      seriesPill.textContent = `Series ${comp}/${tgt} ★`;
+    } else {
+      const cur = matchOver ? comp : Math.min(comp + 1, tgt);
+      seriesPill.textContent = `Match ${Math.max(1, cur)} / ${tgt}`;
+    }
+  }
+
+  function recordMatchToLeaderboard(ranked, winner) {
+    leaderboardState.seriesCompletedMatches += 1;
+    for (let idx = 0; idx < ranked.length; idx++) {
+      const b = ranked[idx];
+      const key = String(b.name || `Robot ${b.id + 1}`).trim().toLowerCase();
+      if (!leaderboardState.entries[key]) {
+        leaderboardState.entries[key] = {
+          key,
+          name: b.name || `Robot ${b.id + 1}`,
+          color: b.color,
+          skin: b.skin ? sanitizeSkin(b.skin, b.id) : null,
+          mode: b.isPlayer ? b.presetShort : b.isCode ? (b.codeAuthor || 'CODE') : b.presetShort,
+          games: 0,
+          wins: 0,
+          kills: 0,
+          deaths: 0,
+          points: 0,
+          damageDealt: 0,
+          damageTaken: 0,
+          shotsFired: 0,
+          shotsHit: 0,
+          bankHits: 0,
+          pillarHits: 0,
+          powerupsCollected: 0,
+          regenUses: 0,
+          hpRegened: 0,
+          closeDodges: 0,
+          totalSurvivalTime: 0
+        };
+      }
+      const rec = leaderboardState.entries[key];
+      rec.name = b.name || rec.name;
+      rec.color = b.color;
+      rec.skin = b.skin ? sanitizeSkin(b.skin, b.id) : rec.skin;
+      rec.mode = b.isPlayer ? b.presetShort : b.isCode ? (b.codeAuthor || 'CODE') : b.presetShort;
+      rec.games += 1;
+      if (idx === 0 && b.alive) rec.wins += 1;
+      rec.kills += b.kills || 0;
+      if (!b.alive) rec.deaths += 1;
+      // Tournament Points: Placement (3 / 2 / 1 / 0) + 1 per Kill
+      rec.points += Math.max(0, 3 - idx) + (b.kills || 0);
+      rec.damageDealt += Math.round(b.damageDealt || 0);
+      rec.damageTaken += Math.round(b.damageTaken || 0);
+      rec.shotsFired += b.shotsFired || 0;
+      rec.shotsHit += b.shotsHit || 0;
+      rec.bankHits += b.bankHits || 0;
+      rec.pillarHits += b.pillarHits || 0;
+      rec.powerupsCollected += b.powerupsCollected || 0;
+      rec.regenUses += b.regenUses || 0;
+      rec.hpRegened += Math.round(b.hpRegened || 0);
+      rec.closeDodges += b.closeDodges || 0;
+      rec.totalSurvivalTime += b.alive ? matchTime : (b.survivalTime || matchTime);
+    }
+
+    leaderboardState.history.unshift({
+      matchNum: leaderboardState.seriesCompletedMatches,
+      theme: currentTheme ? currentTheme.name : 'Maze',
+      duration: formatTime(matchTime),
+      winnerName: winner ? winner.name : 'Draw',
+      winnerColor: winner ? winner.color : '#64748b',
+      topKills: winner ? (winner.kills || 0) : 0,
+      botCount: ranked.length
+    });
+    if (leaderboardState.history.length > 50) leaderboardState.history.length = 50;
+
+    saveLeaderboardState();
+    updateSeriesPillUI();
   }
 
   function buildMatchReportForBot(bot, ranked) {
@@ -6732,6 +7105,21 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
       });
     });
 
+    recordMatchToLeaderboard(ranked, winner);
+    if (btnNextSeriesMatch) {
+      const comp = leaderboardState.seriesCompletedMatches;
+      const tgt = leaderboardState.seriesTargetMatches;
+      if (comp < tgt) {
+        btnNextSeriesMatch.textContent = `Next Match (${comp + 1}/${tgt})`;
+        btnNextSeriesMatch.classList.remove('hidden');
+      } else {
+        btnNextSeriesMatch.classList.add('hidden');
+      }
+    }
+    if (leaderboardModal && !leaderboardModal.classList.contains('hidden')) {
+      renderLeaderboardModal();
+    }
+
     victoryOverlay.classList.remove('hidden');
     updateHudDom();
 
@@ -6749,7 +7137,7 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
           }, 1150);
         } else {
           stopAutoTrain(true);
-          pushFeed(`Auto-Train complete (${autoTrainTotal} matches)! Inspect each bot's Brain to see its evolution.`, '#059669');
+          pushFeed(`Series auto-run complete (${autoTrainTotal} matches)! Open Leaderboard or Brain to inspect results.`, '#059669');
         }
       }
     });
@@ -6817,6 +7205,7 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
     btnPause.textContent = 'Pause';
     btnPause.classList.remove('paused');
 
+    updateSeriesPillUI();
     updateHudDom();
     SoundEngine.startBgm();
   }
@@ -7009,16 +7398,64 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
       ctx.restore();
     }
 
-    // Fading tread track impressions from moving robots
+    // Fading pixel-cartoon movement trails (treads, stars, smoke, sparks, rainbow)
     for (const tm of treadMarks) {
-      const ta = clamp(tm.life / tm.maxLife, 0, 1) * 0.16;
+      const frac = clamp(tm.life / tm.maxLife, 0, 1);
+      const tType = tm.trailType || 'treads';
       ctx.save();
       ctx.translate(tm.x, tm.y);
       ctx.rotate(tm.angle);
-      ctx.fillStyle = tm.color;
-      ctx.globalAlpha = ta;
-      ctx.fillRect(-3, -12, 5, 2.5);
-      ctx.fillRect(-3, 9.5, 5, 2.5);
+      if (tType === 'stars') {
+        ctx.globalAlpha = frac * 0.72;
+        const r = 4.2 * (0.5 + 0.5 * frac);
+        ctx.fillStyle = tm.accent || '#fef08a';
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 1.1;
+        ctx.beginPath();
+        for (let k = 0; k < 8; k++) {
+          const rad = k % 2 === 0 ? r : r * 0.42;
+          const a = (k / 8) * Math.PI * 2 + tm.seed * 3;
+          const px = Math.cos(a) * rad;
+          const py = Math.sin(a) * rad;
+          if (k === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      } else if (tType === 'smoke') {
+        ctx.globalAlpha = frac * 0.55;
+        const off = (1 - frac) * 6;
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(-6 - off, (tm.seed - 0.5) * 8, 3.6 + (1 - frac) * 2.4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      } else if (tType === 'sparks') {
+        ctx.globalAlpha = frac * 0.78;
+        const s = 4.5 * frac + 1.5;
+        ctx.fillStyle = tm.accent || '#fef08a';
+        ctx.fillRect(-6 - s * 0.5, -7, s, s);
+        ctx.fillRect(-6 - s * 0.5, 7 - s, s, s);
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(-6 - s * 0.5, -7, s, s);
+      } else if (tType === 'rainbow') {
+        ctx.globalAlpha = frac * 0.75;
+        const cols = ['#ef4444', '#f59e0b', '#10b981', '#06b6d4', '#8b5cf6'];
+        const cPick = cols[Math.floor(tm.seed * 5) % cols.length];
+        ctx.fillStyle = cPick;
+        ctx.fillRect(-7, -8, 4.5, 4.5);
+        ctx.fillStyle = cols[(Math.floor(tm.seed * 5) + 2) % cols.length];
+        ctx.fillRect(-7, 3.5, 4.5, 4.5);
+      } else {
+        ctx.globalAlpha = frac * 0.28;
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(-3.5, -12.5, 5.5, 3);
+        ctx.fillRect(-3.5, 9.5, 5.5, 3);
+      }
       ctx.restore();
     }
 
@@ -7275,25 +7712,32 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
       ctx.stroke();
       ctx.restore();
 
-      // 4. Crisp high-contrast medallion (bigger 14.5px radius!)
+      // 4. Crisp cartoon-pixel medallion with bold ink border & hard shadow
       ctx.globalAlpha = 1;
-      ctx.shadowColor = 'rgba(15, 23, 42, 0.2)';
-      ctx.shadowBlur = 9;
-      ctx.shadowOffsetY = 2;
+      ctx.fillStyle = '#1e293b';
+      ctx.beginPath();
+      ctx.arc(2, 2.5, 14.8, 0, Math.PI * 2);
+      ctx.fill();
+
       ctx.fillStyle = '#ffffff';
-      ctx.strokeStyle = p.color;
-      ctx.lineWidth = 2.8;
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 2.4;
       ctx.beginPath();
       ctx.arc(0, 0, 14.5, 0, Math.PI * 2);
       ctx.fill();
-      ctx.shadowColor = 'transparent';
       ctx.stroke();
 
-      // Vibrant inner tint
+      // Vibrant colored ring + pastel inner core + pixel shine
       ctx.fillStyle = p.soft;
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth = 2.4;
       ctx.beginPath();
       ctx.arc(0, 0, 11.2, 0, Math.PI * 2);
       ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-7.5, -7.5, 3, 3);
 
       // Crisp vector icon per power-up type
       ctx.strokeStyle = p.color;
@@ -7544,57 +7988,57 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
   function drawBullet(b) {
     const ratio = clamp(b.distance / b.maxRange, 0, 1);
     const remainingRatio = 1 - ratio;
-    // Smooth fade as bullet approaches 550px max range
     const alpha = ratio < 0.45 ? 1 : clamp(1 - ((ratio - 0.45) / 0.55) * 0.78, 0.22, 1);
 
     ctx.save();
 
-    // Velocity trail with fade
+    // Stepped pixel-square trail puffs behind flying cartoon projectile
     if (b.trail.length >= 2) {
-      ctx.beginPath();
-      ctx.moveTo(b.trail[0].x, b.trail[0].y);
-      for (let i = 1; i < b.trail.length; i++) {
-        ctx.lineTo(b.trail[i].x, b.trail[i].y);
+      for (let i = 0; i < b.trail.length - 1; i++) {
+        const pt = b.trail[i];
+        const tFrac = (i + 1) / b.trail.length;
+        const pSize = Math.max(2, (2.2 + 3.4 * tFrac) * (0.55 + 0.45 * remainingRatio));
+        ctx.fillStyle = b.color;
+        ctx.globalAlpha = alpha * tFrac * 0.42;
+        ctx.fillRect(pt.x - pSize * 0.5, pt.y - pSize * 0.5, pSize, pSize);
       }
-      ctx.strokeStyle = b.color;
-      ctx.globalAlpha = alpha * 0.35;
-      ctx.lineWidth = 3.2 * (0.45 + 0.55 * remainingRatio);
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.stroke();
     }
 
     // Subtle visual range-remaining halo arc around aging bullets
     if (ratio > 0.25) {
       ctx.beginPath();
-      ctx.arc(b.x, b.y, BULLET_RADIUS + 3.5, -Math.PI * 0.5, -Math.PI * 0.5 + Math.PI * 2 * remainingRatio);
+      ctx.arc(b.x, b.y, BULLET_RADIUS + 4, -Math.PI * 0.5, -Math.PI * 0.5 + Math.PI * 2 * remainingRatio);
       ctx.strokeStyle = b.color;
-      ctx.globalAlpha = alpha * 0.55;
-      ctx.lineWidth = 1.4;
+      ctx.globalAlpha = alpha * 0.65;
+      ctx.lineWidth = 1.6;
       ctx.stroke();
     }
 
-    // Bullet core (distinct visual halos for supercharged, piercing, penetrate, and ultra-ricochet!)
+    // Special shot halos (supercharged, ultra-ricochet, piercing, penetrate)
     ctx.globalAlpha = alpha;
     if (b.supercharged || b.ultraRicochet || b.piercing || b.penetrateLeft > 0) {
       ctx.strokeStyle = b.supercharged ? '#f59e0b' : b.color;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.2;
       if (b.penetrateLeft > 0) ctx.setLineDash([3, 2]);
       ctx.beginPath();
-      ctx.arc(b.x, b.y, BULLET_RADIUS + (b.ultraRicochet ? 3.2 : 2.6), 0, Math.PI * 2);
+      ctx.arc(b.x, b.y, BULLET_RADIUS + (b.ultraRicochet ? 3.8 : 3.0), 0, Math.PI * 2);
       ctx.stroke();
       ctx.setLineDash([]);
     }
-    ctx.fillStyle = b.color;
-    ctx.beginPath();
-    ctx.arc(b.x, b.y, BULLET_RADIUS * (0.72 + 0.28 * remainingRatio), 0, Math.PI * 2);
-    ctx.fill();
 
-    // Crisp white specular center (highlights bounced shots with bright ring)
-    ctx.fillStyle = '#ffffff';
+    // Chunky ink-outlined cartoon bullet body + crisp pixel highlight
+    const br = BULLET_RADIUS * (0.8 + 0.25 * remainingRatio);
+    ctx.fillStyle = b.color;
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2.0;
     ctx.beginPath();
-    ctx.arc(b.x, b.y, b.bounces > 0 ? 2.1 : 1.5, 0, Math.PI * 2);
+    ctx.arc(b.x, b.y, br, 0, Math.PI * 2);
     ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffffff';
+    const hl = b.bounces > 0 ? 2.4 : 2.0;
+    ctx.fillRect(b.x - br * 0.45, b.y - br * 0.45, hl, hl);
 
     ctx.restore();
   }
@@ -7714,6 +8158,10 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
   function getBotSkin(bot) {
     if (!bot) return 'default';
     if (bot.isPlayer) return 'player';
+    const emb = bot.skin && bot.skin.emblem;
+    if (emb === 'gemini' || emb === 'claude' || emb === 'chatgpt' || emb === 'grok' || emb === 'deepseek') {
+      return emb;
+    }
     const n = String(bot.name || '').toLowerCase();
     if (n.includes('gemini')) return 'gemini';
     if (n.includes('claude')) return 'claude';
@@ -7723,222 +8171,536 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
     return 'default';
   }
 
-  function drawSkinEmblem(skin) {
-    ctx.fillStyle = '#ffffff';
-    ctx.strokeStyle = '#ffffff';
-    if (skin === 'player') {
-      // 5-point Commander star
-      ctx.beginPath();
+  function drawSkinWheels(c, wheels, accent, treadPhase, time) {
+    c.strokeStyle = '#1e293b';
+    c.lineWidth = 1.8;
+    if (wheels === 'monster') {
+      const tirePositions = [
+        [-11, -15.5], [1, -15.5],
+        [-11, 9.5], [1, 9.5]
+      ];
+      for (const [tx, ty] of tirePositions) {
+        c.fillStyle = '#334155';
+        roundRect(c, tx, ty, 10, 6, 2);
+        c.fill();
+        c.stroke();
+        c.fillStyle = accent;
+        c.fillRect(tx + 3.5, ty + 2, 3, 2);
+      }
+      return;
+    }
+    if (wheels === 'hover') {
+      for (const side of [-1, 1]) {
+        const yPos = side < 0 ? -14.5 : 9.5;
+        c.fillStyle = '#475569';
+        roundRect(c, -9, yPos, 18, 5, 2.5);
+        c.fill();
+        c.stroke();
+        c.fillStyle = accent;
+        c.fillRect(-5, yPos + 1.5, 10, 2);
+        // Animated flickering pixel jet exhaust
+        const flicker = 3 + ((Math.floor(time * 20) + (side > 0 ? 1 : 0)) % 3) * 1.6;
+        c.fillStyle = side < 0 ? '#38bdf8' : accent;
+        c.fillRect(-9 - flicker, yPos + 1, flicker, 3);
+      }
+      return;
+    }
+    if (wheels === 'spiked') {
+      c.fillStyle = '#334155';
+      roundRect(c, -12, -14.5, 24, 5, 1.5);
+      c.fill();
+      c.stroke();
+      roundRect(c, -12, 9.5, 24, 5, 1.5);
+      c.fill();
+      c.stroke();
+      c.fillStyle = '#e2e8f0';
+      for (let sx = -8; sx <= 8; sx += 8) {
+        c.beginPath();
+        c.moveTo(sx - 2.5, -14.5);
+        c.lineTo(sx, -18.5);
+        c.lineTo(sx + 2.5, -14.5);
+        c.closePath();
+        c.fill();
+        c.stroke();
+        c.beginPath();
+        c.moveTo(sx - 2.5, 14.5);
+        c.lineTo(sx, 18.5);
+        c.lineTo(sx + 2.5, 14.5);
+        c.closePath();
+        c.fill();
+        c.stroke();
+      }
+      return;
+    }
+    if (wheels === 'sleds') {
+      for (const side of [-1, 1]) {
+        const y0 = side < 0 ? -14 : 10;
+        c.fillStyle = '#334155';
+        c.beginPath();
+        c.moveTo(-13, y0);
+        c.lineTo(11, y0);
+        c.lineTo(15, side < 0 ? y0 - 2.5 : y0 + 6.5);
+        c.lineTo(12, side < 0 ? y0 + 4 : y0);
+        c.lineTo(-13, y0 + 4);
+        c.closePath();
+        c.fill();
+        c.stroke();
+        c.fillStyle = accent;
+        c.fillRect(-9, y0 + 1.2, 17, 1.5);
+      }
+      return;
+    }
+    // Default 'treads': chunky pixel treads with scrolling cleats
+    c.fillStyle = '#334155';
+    roundRect(c, -12, -15, 24, 5.5, 2);
+    c.fill();
+    c.stroke();
+    roundRect(c, -12, 9.5, 24, 5.5, 2);
+    c.fill();
+    c.stroke();
+    c.fillStyle = 'rgba(255, 255, 255, 0.55)';
+    for (let tx = -10 + treadPhase; tx <= 9; tx += 6) {
+      c.fillRect(tx, -14.2, 2, 4);
+      c.fillRect(tx, 10.2, 2, 4);
+    }
+  }
+
+  function drawSkinBody(c, bodyShape, bodyFill, primary, accent) {
+    c.fillStyle = bodyFill;
+    c.strokeStyle = '#1e293b';
+    c.lineWidth = 2.2;
+    if (bodyShape === 'heavy') {
+      roundRect(c, -13, -11.5, 26, 23, 3.5);
+      c.fill();
+      c.stroke();
+      // Chunky front ram bumper
+      c.fillStyle = '#64748b';
+      c.fillRect(11.5, -8, 3, 16);
+      c.strokeRect(11.5, -8, 3, 16);
+    } else if (bodyShape === 'octa') {
+      c.beginPath();
+      c.moveTo(12.5, -4.5);
+      c.lineTo(12.5, 4.5);
+      c.lineTo(4.5, 11);
+      c.lineTo(-6, 11);
+      c.lineTo(-12.5, 5.5);
+      c.lineTo(-12.5, -5.5);
+      c.lineTo(-6, -11);
+      c.lineTo(4.5, -11);
+      c.closePath();
+      c.fill();
+      c.stroke();
+    } else if (bodyShape === 'delta') {
+      c.beginPath();
+      c.moveTo(14, 0);
+      c.lineTo(3, -11.5);
+      c.lineTo(-12.5, -9.5);
+      c.lineTo(-9, 0);
+      c.lineTo(-12.5, 9.5);
+      c.lineTo(3, 11.5);
+      c.closePath();
+      c.fill();
+      c.stroke();
+    } else if (bodyShape === 'capsule') {
+      roundRect(c, -12.5, -10.5, 25, 21, 9.5);
+      c.fill();
+      c.stroke();
+    } else if (bodyShape === 'hex') {
+      c.beginPath();
+      c.moveTo(13, 0);
+      c.lineTo(6.5, -11.5);
+      c.lineTo(-6.5, -11.5);
+      c.lineTo(-13, 0);
+      c.lineTo(-6.5, 11.5);
+      c.lineTo(6.5, 11.5);
+      c.closePath();
+      c.fill();
+      c.stroke();
+    } else {
+      // 'boxy' arcade square chassis
+      roundRect(c, -12, -10.5, 24, 21, 3);
+      c.fill();
+      c.stroke();
+      c.fillStyle = '#1e293b';
+      c.fillRect(-10, -8.5, 2, 2);
+      c.fillRect(8, -8.5, 2, 2);
+      c.fillRect(-10, 6.5, 2, 2);
+      c.fillRect(8, 6.5, 2, 2);
+    }
+
+    // Accent inner deck plate
+    c.fillStyle = accent;
+    roundRect(c, -7.8, -6.5, 15.6, 13, bodyShape === 'capsule' ? 5.5 : 2.5);
+    c.fill();
+    c.strokeStyle = '#1e293b';
+    c.lineWidth = 1.2;
+    c.stroke();
+
+    // Forward direction chevron + pixel highlight
+    c.fillStyle = '#1e293b';
+    c.beginPath();
+    c.moveTo(11.5, 0);
+    c.lineTo(7.2, -3.4);
+    c.lineTo(7.2, 3.4);
+    c.closePath();
+    c.fill();
+
+    c.fillStyle = 'rgba(255, 255, 255, 0.78)';
+    c.fillRect(-9.5, -8.5, 3, 2);
+    void primary;
+  }
+
+  function drawSkinCannon(c, cannonStyle, recoil, primary, accent, weaponColor) {
+    const muzCol = weaponColor || accent || primary;
+    c.strokeStyle = '#1e293b';
+    c.lineWidth = 1.8;
+
+    if (cannonStyle === 'twin') {
+      const len = 17 - recoil * 0.7;
+      for (const yy of [-4.8, 1.8]) {
+        c.fillStyle = '#475569';
+        roundRect(c, 2, yy, len, 3.2, 1.2);
+        c.fill();
+        c.stroke();
+        c.fillStyle = muzCol;
+        c.fillRect(len - 1.5, yy - 0.3, 3.8, 3.8);
+        c.strokeRect(len - 1.5, yy - 0.3, 3.8, 3.8);
+      }
+      return;
+    }
+    if (cannonStyle === 'mortar') {
+      const len = 15 - recoil * 0.6;
+      c.fillStyle = '#475569';
+      c.beginPath();
+      c.moveTo(2, -3.6);
+      c.lineTo(len, -4.6);
+      c.lineTo(len, 4.6);
+      c.lineTo(2, 3.6);
+      c.closePath();
+      c.fill();
+      c.stroke();
+      c.fillStyle = muzCol;
+      c.fillRect(len - 2, -5.2, 4.5, 10.4);
+      c.strokeRect(len - 2, -5.2, 4.5, 10.4);
+      return;
+    }
+    if (cannonStyle === 'rail') {
+      const len = 20 - recoil * 0.7;
+      c.fillStyle = muzCol;
+      c.fillRect(3, -1.2, len - 2, 2.4);
+      c.fillStyle = '#334155';
+      c.fillRect(2, -3.8, len, 2.2);
+      c.strokeRect(2, -3.8, len, 2.2);
+      c.fillRect(2, 1.6, len, 2.2);
+      c.strokeRect(2, 1.6, len, 2.2);
+      return;
+    }
+    // 'standard'
+    const len = 18 - recoil * 0.7;
+    c.fillStyle = '#475569';
+    roundRect(c, 2, -2.8, len, 5.6, 1.5);
+    c.fill();
+    c.stroke();
+    c.fillStyle = muzCol;
+    c.fillRect(len - 1.5, -3.2, 4.4, 6.4);
+    c.strokeRect(len - 1.5, -3.2, 4.4, 6.4);
+  }
+
+  function drawSkinEmblem(c, emblem, time, accent) {
+    c.fillStyle = '#ffffff';
+    c.strokeStyle = '#ffffff';
+    if (emblem === 'eyes') {
+      const blinking = (time % 3.8) > 3.64;
+      if (blinking) {
+        c.strokeStyle = '#1e293b';
+        c.lineWidth = 1.6;
+        c.beginPath();
+        c.moveTo(-1, -3);
+        c.lineTo(3, -3);
+        c.moveTo(-1, 3);
+        c.lineTo(3, 3);
+        c.stroke();
+      } else {
+        c.fillStyle = '#ffffff';
+        c.strokeStyle = '#1e293b';
+        c.lineWidth = 1.1;
+        c.fillRect(-1.2, -4.8, 4.6, 4);
+        c.strokeRect(-1.2, -4.8, 4.6, 4);
+        c.fillRect(-1.2, 0.8, 4.6, 4);
+        c.strokeRect(-1.2, 0.8, 4.6, 4);
+        c.fillStyle = '#1e293b';
+        c.fillRect(1.0, -3.8, 2.2, 2.2);
+        c.fillRect(1.0, 1.6, 2.2, 2.2);
+      }
+      return;
+    }
+    if (emblem === 'visor') {
+      c.fillStyle = '#0f172a';
+      c.strokeStyle = '#1e293b';
+      c.lineWidth = 1.2;
+      roundRect(c, -1.5, -5.2, 5.2, 10.4, 2);
+      c.fill();
+      c.stroke();
+      const scanY = Math.sin(time * 4.5) * 3.2;
+      c.fillStyle = accent || '#38bdf8';
+      c.fillRect(0.2, scanY - 1.4, 2.4, 2.8);
+      return;
+    }
+    if (emblem === 'star') {
+      c.beginPath();
       for (let i = 0; i < 10; i++) {
-        const r = i % 2 === 0 ? 4.3 : 1.8;
+        const r = i % 2 === 0 ? 4.4 : 1.9;
         const a = -Math.PI * 0.5 + (i / 10) * Math.PI * 2;
         const px = Math.cos(a) * r;
         const py = Math.sin(a) * r;
-        if (i === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
+        if (i === 0) c.moveTo(px, py);
+        else c.lineTo(px, py);
       }
-      ctx.closePath();
-      ctx.fill();
-    } else if (skin === 'gemini') {
-      // 4-point crisp star
-      ctx.beginPath();
+      c.closePath();
+      c.fill();
+      return;
+    }
+    if (emblem === 'gemini') {
+      c.beginPath();
       for (let i = 0; i < 8; i++) {
         const r = i % 2 === 0 ? 4.5 : 1.5;
         const a = (i / 8) * Math.PI * 2;
         const px = Math.cos(a) * r;
         const py = Math.sin(a) * r;
-        if (i === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
+        if (i === 0) c.moveTo(px, py);
+        else c.lineTo(px, py);
       }
-      ctx.closePath();
-      ctx.fill();
-    } else if (skin === 'claude') {
-      // 6-ray sunburst
-      ctx.lineWidth = 1.4;
-      ctx.lineCap = 'round';
+      c.closePath();
+      c.fill();
+    } else if (emblem === 'claude') {
+      c.lineWidth = 1.4;
+      c.lineCap = 'round';
       for (let i = 0; i < 6; i++) {
         const a = (i / 6) * Math.PI * 2;
-        ctx.beginPath();
-        ctx.moveTo(Math.cos(a) * 1.2, Math.sin(a) * 1.2);
-        ctx.lineTo(Math.cos(a) * 4.2, Math.sin(a) * 4.2);
-        ctx.stroke();
+        c.beginPath();
+        c.moveTo(Math.cos(a) * 1.2, Math.sin(a) * 1.2);
+        c.lineTo(Math.cos(a) * 4.2, Math.sin(a) * 4.2);
+        c.stroke();
       }
-    } else if (skin === 'chatgpt') {
-      // Crisp hollow hex-ring knot
-      ctx.lineWidth = 1.3;
-      ctx.beginPath();
-      ctx.arc(0, 0, 3.6, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(0, 0, 1.3, 0, Math.PI * 2);
-      ctx.fill();
-    } else if (skin === 'grok') {
-      // Bold diagonal slash inside ring
-      ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      ctx.arc(0, 0, 3.8, 0.3, Math.PI * 2 - 0.3);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(-3.2, 3.2);
-      ctx.lineTo(3.2, -3.2);
-      ctx.stroke();
-    } else if (skin === 'deepseek') {
-      // Forward sonar wave arcs
-      ctx.lineWidth = 1.3;
-      ctx.beginPath();
-      ctx.arc(-1, 0, 2.8, -0.95, 0.95);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(-1, 0, 4.6, -0.75, 0.75);
-      ctx.stroke();
+    } else if (emblem === 'chatgpt') {
+      c.lineWidth = 1.3;
+      c.beginPath();
+      c.arc(0, 0, 3.6, 0, Math.PI * 2);
+      c.stroke();
+      c.beginPath();
+      c.arc(0, 0, 1.3, 0, Math.PI * 2);
+      c.fill();
+    } else if (emblem === 'grok') {
+      c.lineWidth = 1.4;
+      c.beginPath();
+      c.arc(0, 0, 3.8, 0.3, Math.PI * 2 - 0.3);
+      c.stroke();
+      c.beginPath();
+      c.moveTo(-3.2, 3.2);
+      c.lineTo(3.2, -3.2);
+      c.stroke();
+    } else if (emblem === 'deepseek') {
+      c.lineWidth = 1.3;
+      c.beginPath();
+      c.arc(-1, 0, 2.8, -0.95, 0.95);
+      c.stroke();
+      c.beginPath();
+      c.arc(-1, 0, 4.6, -0.75, 0.75);
+      c.stroke();
     } else {
-      ctx.beginPath();
-      ctx.arc(2.5, 0, 1.8, 0, Math.PI * 2);
-      ctx.fill();
+      c.beginPath();
+      c.arc(2.5, 0, 1.8, 0, Math.PI * 2);
+      c.fill();
     }
   }
 
+  function drawSkinAccessory(c, accessory, primary, accent, time) {
+    if (!accessory || accessory === 'none') return;
+    c.strokeStyle = '#1e293b';
+    c.lineWidth = 1.6;
+    c.lineJoin = 'round';
+
+    if (accessory === 'crown') {
+      c.fillStyle = '#facc15';
+      c.beginPath();
+      c.moveTo(-6.5, -6);
+      c.lineTo(-7.5, -14);
+      c.lineTo(-3, -10.2);
+      c.lineTo(0, -15);
+      c.lineTo(3, -10.2);
+      c.lineTo(7.5, -14);
+      c.lineTo(6.5, -6);
+      c.closePath();
+      c.fill();
+      c.stroke();
+      c.fillStyle = '#ef4444';
+      c.fillRect(-1.2, -9.5, 2.4, 2.4);
+    } else if (accessory === 'bandana') {
+      c.fillStyle = '#ef4444';
+      roundRect(c, -7.8, -8.5, 15.6, 4.2, 1.5);
+      c.fill();
+      c.stroke();
+      const wave = Math.sin(time * 7.5) * 1.8;
+      c.beginPath();
+      c.moveTo(-7.5, -6.5);
+      c.lineTo(-14, -9.5 + wave);
+      c.lineTo(-12.2, -5.5 + wave);
+      c.lineTo(-14.5, -3.5 + wave * 0.6);
+      c.lineTo(-7.5, -5.2);
+      c.closePath();
+      c.fill();
+      c.stroke();
+    } else if (accessory === 'antenna') {
+      c.beginPath();
+      c.moveTo(2, -6.5);
+      c.lineTo(5.5, -14.5);
+      c.stroke();
+      const pulseCol = (Math.floor(time * 4) % 2 === 0) ? accent : '#38bdf8';
+      c.fillStyle = pulseCol;
+      c.beginPath();
+      c.arc(5.8, -15.2, 2.8, 0, Math.PI * 2);
+      c.fill();
+      c.stroke();
+    } else if (accessory === 'catears') {
+      for (const s of [-1, 1]) {
+        c.fillStyle = primary;
+        c.beginPath();
+        c.moveTo(s * 2, -6);
+        c.lineTo(s * 7.2, -13.5);
+        c.lineTo(s * 8, -4.5);
+        c.closePath();
+        c.fill();
+        c.stroke();
+        c.fillStyle = '#f472b6';
+        c.beginPath();
+        c.moveTo(s * 3.6, -6.6);
+        c.lineTo(s * 6.5, -11);
+        c.lineTo(s * 6.8, -5.8);
+        c.closePath();
+        c.fill();
+      }
+    } else if (accessory === 'horns') {
+      for (const s of [-1, 1]) {
+        c.fillStyle = '#fef3c7';
+        c.beginPath();
+        c.moveTo(s * 4.5, -6);
+        c.quadraticCurveTo(s * 11, -9, s * 9.5, -15.5);
+        c.quadraticCurveTo(s * 7, -11, s * 2.5, -7);
+        c.closePath();
+        c.fill();
+        c.stroke();
+      }
+    } else if (accessory === 'propeller') {
+      c.fillStyle = '#38bdf8';
+      c.beginPath();
+      c.arc(0, -6.2, 5, Math.PI, 0);
+      c.closePath();
+      c.fill();
+      c.stroke();
+      c.beginPath();
+      c.moveTo(0, -11.2);
+      c.lineTo(0, -14);
+      c.stroke();
+      const span = 2.5 + Math.abs(Math.cos(time * 16)) * 6.5;
+      c.fillStyle = '#facc15';
+      c.fillRect(-span, -15.2, span, 2.4);
+      c.strokeRect(-span, -15.2, span, 2.4);
+      c.fillStyle = '#ef4444';
+      c.fillRect(0, -15.2, span, 2.4);
+      c.strokeRect(0, -15.2, span, 2.4);
+    } else if (accessory === 'halo') {
+      const bobY = -13.5 + Math.sin(time * 4.2) * 1.4;
+      c.strokeStyle = '#1e293b';
+      c.lineWidth = 4.0;
+      c.beginPath();
+      c.ellipse(0, bobY, 6.8, 2.5, 0, 0, Math.PI * 2);
+      c.stroke();
+      c.strokeStyle = '#fde047';
+      c.lineWidth = 2.1;
+      c.stroke();
+    }
+  }
+
+  function renderRobotSprite(c, rawSkin, opts = {}) {
+    const skin = sanitizeSkin(rawSkin, 0);
+    const bodyAngle = opts.bodyAngle || 0;
+    const recoil = opts.recoil || 0;
+    const hitFlash = opts.hitFlash || 0;
+    const time = opts.time || 0;
+    const distanceTraveled = opts.distanceTraveled || 0;
+    const isPlayer = Boolean(opts.isPlayer);
+    const weaponColor = opts.weaponColor || null;
+    const scale = opts.scale || 1;
+    const shadow = opts.shadow !== false;
+
+    c.save();
+    c.scale(scale, scale);
+
+    if (shadow) {
+      c.fillStyle = 'rgba(30, 41, 59, 0.2)';
+      c.beginPath();
+      c.arc(2, 3.2, BOT_RADIUS + 0.5, 0, Math.PI * 2);
+      c.fill();
+    }
+
+    // Directional chassis + wheels + cannon + eyes/visor
+    c.save();
+    c.rotate(bodyAngle);
+
+    const treadPhase = distanceTraveled % 6;
+    drawSkinWheels(c, skin.wheels, skin.accent, treadPhase, time);
+
+    const hullFill = hitFlash > 0.35 ? '#fecaca' : skin.primary;
+    drawSkinBody(c, skin.body, hullFill, skin.primary, skin.accent);
+    drawSkinCannon(c, skin.cannon, recoil, skin.primary, skin.accent, weaponColor);
+
+    // Ink-outlined cartoon turret dome
+    c.fillStyle = hitFlash > 0.35 ? '#fca5a5' : skin.primary;
+    c.strokeStyle = '#1e293b';
+    c.lineWidth = 2.0;
+    c.beginPath();
+    c.arc(0, 0, isPlayer ? 7.6 : 7.0, 0, Math.PI * 2);
+    c.fill();
+    c.stroke();
+
+    drawSkinEmblem(c, skin.emblem, time, skin.accent);
+    c.restore();
+
+    // Upright comic hat/accessory perched cleanly over turret
+    drawSkinAccessory(c, skin.accessory, skin.primary, skin.accent, time);
+
+    c.restore();
+  }
+
   function drawRobot(bot) {
-    const skin = getBotSkin(bot);
+    const skin = bot.skin || DEFAULT_SLOT_SKINS[bot.id % DEFAULT_SLOT_SKINS.length];
     ctx.save();
     ctx.translate(bot.x, bot.y);
 
-    // Subtle halo ring highlighting the player-controlled robot
+    // Dashed ring highlighting player-controlled robot
     if (bot.isPlayer) {
       ctx.save();
       ctx.strokeStyle = bot.color;
-      ctx.globalAlpha = 0.35;
-      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.45;
+      ctx.lineWidth = 2.2;
       ctx.setLineDash([4, 3]);
       ctx.beginPath();
-      ctx.arc(0, 0, BOT_RADIUS + 5.5, 0, Math.PI * 2);
+      ctx.arc(0, 0, BOT_RADIUS + 6, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
     }
 
-    // Soft ground shadow
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.14)';
-    ctx.beginPath();
-    ctx.arc(1.5, 3, BOT_RADIUS + 1, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Chassis + Treads rotated to bodyAngle (distinct hull silhouettes per identity)
-    ctx.save();
-    ctx.rotate(bot.bodyAngle);
-
-    // Side treads with animated travel ticks
-    ctx.fillStyle = '#334155';
-    roundRect(ctx, -12, -14.5, 24, 5, 2);
-    ctx.fill();
-    roundRect(ctx, -12, 9.5, 24, 5, 2);
-    ctx.fill();
-
-    const treadPhase = (bot.distanceTraveled || 0) % 6;
-    ctx.fillStyle = 'rgba(248, 250, 252, 0.38)';
-    for (let tx = -10 + treadPhase; tx <= 9; tx += 6) {
-      ctx.fillRect(tx, -14.2, 1.6, 4.4);
-      ctx.fillRect(tx, 9.8, 1.6, 4.4);
-    }
-
-    // Distinct armored rover hull silhouette
-    ctx.fillStyle = '#ffffff';
-    ctx.strokeStyle = bot.hitFlash > 0.2 ? '#0f172a' : bot.color;
-    ctx.lineWidth = skin === 'player' ? 2.6 : 2.4;
-
-    if (skin === 'grok') {
-      // Swept angular delta hull
-      ctx.beginPath();
-      ctx.moveTo(13, 0);
-      ctx.lineTo(4, -10.5);
-      ctx.lineTo(-12, -9);
-      ctx.lineTo(-9, 0);
-      ctx.lineTo(-12, 9);
-      ctx.lineTo(4, 10.5);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    } else if (skin === 'gemini') {
-      // Crisp octagonal faceted hull
-      ctx.beginPath();
-      ctx.moveTo(12, -4);
-      ctx.lineTo(12, 4);
-      ctx.lineTo(4, 10.5);
-      ctx.lineTo(-6, 10.5);
-      ctx.lineTo(-12, 5);
-      ctx.lineTo(-12, -5);
-      ctx.lineTo(-6, -10.5);
-      ctx.lineTo(4, -10.5);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    } else if (skin === 'deepseek') {
-      // Tapered hydro-finned hull
-      ctx.beginPath();
-      ctx.moveTo(13, -3);
-      ctx.lineTo(13, 3);
-      ctx.lineTo(2, 11);
-      ctx.lineTo(-11, 8.5);
-      ctx.lineTo(-13, 4);
-      ctx.lineTo(-13, -4);
-      ctx.lineTo(-11, -8.5);
-      ctx.lineTo(2, -11);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    } else if (skin === 'claude') {
-      // Soft rounded-pill armored hull
-      roundRect(ctx, -12, -10.5, 24, 21, 9);
-      ctx.fill();
-      ctx.stroke();
-    } else {
-      roundRect(ctx, -12, -10.5, 24, 21, 6);
-      ctx.fill();
-      ctx.stroke();
-    }
-
-    // Colored inner core plate
-    ctx.fillStyle = bot.hitFlash > 0.35 ? '#fecaca' : bot.soft;
-    roundRect(ctx, -8.5, -7, 17, 14, skin === 'claude' ? 6 : 4);
-    ctx.fill();
-
-    // Forward direction chevron / Commander dual nose plates
-    ctx.fillStyle = bot.color;
-    ctx.beginPath();
-    ctx.moveTo(11, 0);
-    ctx.lineTo(6.5, -3.6);
-    ctx.lineTo(6.5, 3.6);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.restore();
-
-    // Fixed Forward Cannon rigidly locked to chassis facing direction
-    ctx.save();
-    ctx.rotate(bot.bodyAngle);
-
-    // Barrel with subtle firing recoil
-    const barrelLen = 18 - bot.recoil * 0.7;
-    ctx.fillStyle = '#1e293b';
-    roundRect(ctx, 2, -2.5, barrelLen, 5, 2);
-    ctx.fill();
-
-    // Colored muzzle tip (glows with special power-up weapon color when charged!)
-    ctx.fillStyle = (bot.weaponType && bot.weaponCharges > 0) ? POWERUP_TYPES[bot.weaponType].color : bot.color;
-    ctx.fillRect(barrelLen - 1.5, -2.8, 4.2, 5.6);
-
-    // Turret dome
-    ctx.fillStyle = bot.color;
-    ctx.beginPath();
-    ctx.arc(0, 0, skin === 'player' ? 7.4 : 6.8, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1.6;
-    ctx.stroke();
-
-    // Custom identity emblem on turret dome
-    drawSkinEmblem(skin);
-
-    ctx.restore();
+    renderRobotSprite(ctx, skin, {
+      bodyAngle: bot.bodyAngle,
+      recoil: bot.recoil,
+      hitFlash: bot.hitFlash,
+      time: matchTime,
+      distanceTraveled: bot.distanceTraveled,
+      isPlayer: bot.isPlayer,
+      weaponColor: (bot.weaponType && bot.weaponCharges > 0) ? POWERUP_TYPES[bot.weaponType].color : null,
+      scale: 1,
+      shadow: true
+    });
 
     // Active Power-Up Auras around Robot (Shield, Reflective Shield, Speed, Stun)
     if (bot.shieldHp > 0) {
@@ -7948,7 +8710,7 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
       ctx.beginPath();
       ctx.arc(0, 0, BOT_RADIUS + 6, 0, Math.PI * 2);
       ctx.fill();
-      ctx.globalAlpha = 0.85;
+      ctx.globalAlpha = 0.88;
       ctx.strokeStyle = POWERUP_TYPES.shield.color;
       ctx.lineWidth = 2.4;
       const sFrac = clamp(bot.shieldHp / POWERUP_TYPES.shield.shieldHp, 0, 1);
@@ -7985,7 +8747,7 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
     if (bot.stunTimer > 0) {
       ctx.save();
       ctx.strokeStyle = '#eab308';
-      ctx.lineWidth = 1.8;
+      ctx.lineWidth = 2.0;
       ctx.setLineDash([3, 3]);
       ctx.beginPath();
       ctx.arc(0, 0, BOT_RADIUS + 3, matchTime * 6, matchTime * 6 + Math.PI * 1.5);
@@ -7993,17 +8755,16 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
       ctx.restore();
     }
 
-    // Overhead Mini HP Bar + Nameplate
+    // Overhead Cartoon-Ink Mini HP Bar + Nameplate
     const isTankPlayer = bot.maxHp > MAX_HP;
-    const barW = isTankPlayer ? 46 : 34;
-    const barH = isTankPlayer ? 5 : 4;
-    const barY = -BOT_RADIUS - 11;
-
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-    roundRect(ctx, -barW / 2 - 1, barY - 1, barW + 2, barH + 2, 3);
-    ctx.fill();
+    const barW = isTankPlayer ? 46 : 36;
+    const barH = isTankPlayer ? 6 : 5;
+    const hasHat = skin.accessory && skin.accessory !== 'none';
+    const barY = -BOT_RADIUS - (hasHat ? 18 : 13);
 
     ctx.fillStyle = '#e2e8f0';
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 1.6;
     roundRect(ctx, -barW / 2, barY, barW, barH, 2);
     ctx.fill();
 
@@ -8013,12 +8774,13 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
       roundRect(ctx, -barW / 2, barY, barW * hpRatio, barH, 2);
       ctx.fill();
     }
+    ctx.strokeRect(-barW / 2, barY, barW, barH);
 
     // Segment ticks (every 100 HP) for high-HP player tanks
     if (isTankPlayer) {
       const segs = Math.floor(bot.maxHp / 100);
       if (segs > 1) {
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
         for (let s = 1; s < segs; s++) {
           const sx = -barW / 2 + (barW * (s * 100)) / bot.maxHp;
           ctx.fillRect(sx - 0.5, barY, 1, barH);
@@ -8026,17 +8788,13 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
       }
     }
 
-    // Overhead Per-Bullet Reload Progress Bar (1.5s per bullet)
+    // Overhead Per-Bullet Reload Progress Bar
     if (bot.ammo < bot.maxAmmo) {
       const rProgress = clamp(1 - bot.reloadTimer / RELOAD_PER_BULLET, 0, 1);
       const isEmpty = bot.ammo === 0;
       const rW = isEmpty ? 40 : 34;
-      const rH = isEmpty ? 5 : 3;
-      const rY = barY - (isEmpty ? 10 : 6);
-
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-      roundRect(ctx, -rW / 2 - 1, rY - 1, rW + 2, rH + 2, 3);
-      ctx.fill();
+      const rH = isEmpty ? 5 : 3.5;
+      const rY = barY - (isEmpty ? 9 : 6);
 
       ctx.fillStyle = '#fef3c7';
       roundRect(ctx, -rW / 2, rY, rW, rH, 2);
@@ -8045,21 +8803,24 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
       ctx.fillStyle = '#f59e0b';
       roundRect(ctx, -rW / 2, rY, rW * rProgress, rH, 2);
       ctx.fill();
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(-rW / 2, rY, rW, rH);
 
       if (isEmpty) {
-        ctx.font = '700 8.5px "JetBrains Mono", Consolas, monospace';
+        ctx.font = '800 8.5px "JetBrains Mono", Consolas, monospace';
         ctx.textAlign = 'center';
         ctx.fillStyle = '#b45309';
         ctx.fillText(`RELOAD ${bot.reloadTimer.toFixed(1)}s`, 0, rY - 3);
       }
     }
 
-    // Clean crisp model / player nameplate below robot
-    ctx.font = '800 8.5px "JetBrains Mono", Consolas, monospace';
+    // Crisp nameplate below robot
+    ctx.font = '800 9px "JetBrains Mono", Consolas, monospace';
     ctx.textAlign = 'center';
-    ctx.fillStyle = bot.isPlayer ? bot.dark : '#334155';
+    ctx.fillStyle = '#1e293b';
     const labelText = bot.isPlayer ? `${bot.presetShort} · ${bot.name}` : bot.name;
-    ctx.fillText(labelText.slice(0, 14), 0, BOT_RADIUS + 11);
+    ctx.fillText(labelText.slice(0, 14), 0, BOT_RADIUS + 13);
 
     ctx.restore();
   }
@@ -8070,16 +8831,39 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
       ctx.save();
       ctx.globalAlpha = alpha;
       if (p.type === 'spark') {
+        const s = Math.max(2.6, p.size * (0.85 + 0.85 * alpha));
         ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size * (0.4 + 0.6 * alpha), 0, Math.PI * 2);
-        ctx.fill();
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 1.2;
+        if (p.size >= 3.2) {
+          // 4-point cartoon pixel star for dramatic sparks
+          ctx.translate(p.x, p.y);
+          ctx.rotate(alpha * 2.5);
+          ctx.beginPath();
+          for (let k = 0; k < 8; k++) {
+            const rad = k % 2 === 0 ? s * 1.15 : s * 0.45;
+            const a = (k / 8) * Math.PI * 2;
+            const px = Math.cos(a) * rad;
+            const py = Math.sin(a) * rad;
+            if (k === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+        } else {
+          ctx.fillRect(p.x - s * 0.5, p.y - s * 0.5, s, s);
+          ctx.strokeRect(p.x - s * 0.5, p.y - s * 0.5, s, s);
+        }
       } else if (p.type === 'ring') {
-        ctx.strokeStyle = p.color;
-        ctx.lineWidth = p.dashed ? 1.5 : 2;
-        if (p.dashed) ctx.setLineDash([3, 3]);
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = p.dashed ? 2.4 : 3.2;
+        if (p.dashed) ctx.setLineDash([4, 3]);
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = p.dashed ? 1.4 : 2;
         ctx.stroke();
       }
       ctx.restore();
@@ -8090,50 +8874,60 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
     const fade = sb.life < 0.35 ? sb.life / 0.35 : 1;
     ctx.save();
     ctx.globalAlpha = fade;
-    ctx.font = '700 10.5px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.font = '700 10.5px "Fredoka", Inter, -apple-system, sans-serif';
     const textW = ctx.measureText(sb.text).width;
     const padX = 9;
     const boxW = textW + padX * 2 + 8;
     const boxH = 22;
 
     const owner = bots[sb.botId];
-    const extraOffset = owner && owner.reloading ? 42 : 30;
+    const extraOffset = owner && owner.reloading ? 44 : 32;
     const bx = clamp(sb.x - boxW * 0.5, 8, CANVAS_W - boxW - 8);
     const by = clamp(sb.y - extraOffset - boxH, 8, CANVAS_H - boxH - 12);
 
-    // Bubble shadow + white pill
-    ctx.shadowColor = 'rgba(15, 23, 42, 0.14)';
-    ctx.shadowBlur = 8;
-    ctx.shadowOffsetY = 2;
-
-    ctx.fillStyle = '#ffffff';
-    ctx.strokeStyle = sb.color;
-    ctx.lineWidth = 1.5;
-    roundRect(ctx, bx, by, boxW, boxH, 11);
+    // Hard comic pixel offset shadow
+    ctx.fillStyle = '#1e293b';
+    roundRect(ctx, bx + 2.5, by + 2.5, boxW, boxH, 7);
     ctx.fill();
-    ctx.shadowColor = 'transparent';
+
+    // Comic white bubble with bold ink border
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2;
+    roundRect(ctx, bx, by, boxW, boxH, 7);
+    ctx.fill();
     ctx.stroke();
 
-    // Pointer triangle
+    // Outlined pointer triangle
     const tipX = clamp(sb.x, bx + 10, bx + boxW - 10);
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.moveTo(tipX - 4, by + boxH - 1);
-    ctx.lineTo(tipX + 4, by + boxH - 1);
-    ctx.lineTo(tipX, by + boxH + 5);
+    ctx.moveTo(tipX - 5, by + boxH - 1.5);
+    ctx.lineTo(tipX + 5, by + boxH - 1.5);
+    ctx.lineTo(tipX, by + boxH + 6);
     ctx.closePath();
     ctx.fill();
-
-    // Colored dot + text
-    ctx.fillStyle = sb.color;
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(bx + 10, by + boxH * 0.5, 3, 0, Math.PI * 2);
+    ctx.moveTo(tipX - 5, by + boxH - 0.5);
+    ctx.lineTo(tipX, by + boxH + 6);
+    ctx.lineTo(tipX + 5, by + boxH - 0.5);
+    ctx.stroke();
+
+    // Colored status dot + crisp text
+    ctx.fillStyle = sb.color;
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(bx + 10.5, by + boxH * 0.5, 3.2, 0, Math.PI * 2);
     ctx.fill();
+    ctx.stroke();
 
     ctx.fillStyle = '#161e2e';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(sb.text, bx + 17, by + boxH * 0.5 + 0.5);
+    ctx.fillText(sb.text, bx + 17.5, by + boxH * 0.5 + 0.5);
 
     ctx.restore();
   }
@@ -8163,11 +8957,15 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
       bot.treadDistAccum += stepDist;
       if (bot.treadDistAccum >= 11 && speed > 18) {
         bot.treadDistAccum = 0;
+        const bSkin = bot.skin || DEFAULT_SLOT_SKINS[bot.id % DEFAULT_SLOT_SKINS.length];
         treadMarks.push({
           x: bot.x,
           y: bot.y,
           angle: bot.bodyAngle,
           color: bot.color,
+          accent: bSkin.accent || '#fef08a',
+          trailType: bSkin.trail || 'treads',
+          seed: Math.random(),
           life: 2.6,
           maxLife: 2.6
         });
@@ -8223,6 +9021,10 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
     if (!lastFrameTs) lastFrameTs = ts;
     const rawDt = Math.min((ts - lastFrameTs) / 1000, 0.05);
     lastFrameTs = ts;
+
+    if (skinModal && !skinModal.classList.contains('hidden')) {
+      renderSkinPreviewFrame(ts * 0.001, rawDt);
+    }
 
     if (screenMode !== 'arena') return;
 
@@ -8369,6 +9171,440 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
 
   function closePromptModal() {
     promptModal.classList.add('hidden');
+  }
+
+  // ==================== ROBOT SKIN WORKSHOP CONTROLLER ====================
+  function setSkinWorkshopStatus(msg) {
+    const el = document.getElementById('skin-status-text');
+    if (el) el.textContent = msg;
+  }
+
+  function triggerSkinPreviewFire() {
+    const cfg = botConfigs[editingSkinSlotIdx];
+    if (!cfg) return;
+    const skin = sanitizeSkin(cfg.skin, editingSkinSlotIdx);
+    const isHuman = cfg.role === 'p1' || cfg.role === 'p2';
+    SoundEngine.unlock();
+    SoundEngine.playShoot(isHuman, getBotSkin({ isPlayer: isHuman, name: cfg.name, skin }));
+
+    const ang = -0.15 + Math.sin(performance.now() * 0.001 * 1.4) * 0.22;
+    const cx = 104;
+    const cy = 112;
+    const muzDist = 56;
+    const vx = Math.cos(ang) * 260;
+    const vy = Math.sin(ang) * 260;
+    const perpX = -Math.sin(ang);
+    const perpY = Math.cos(ang);
+
+    const shotBullets = skin.cannon === 'twin'
+      ? [
+          { x: cx + Math.cos(ang) * muzDist + perpX * 8, y: cy + Math.sin(ang) * muzDist + perpY * 8, vx, vy, color: skin.primary },
+          { x: cx + Math.cos(ang) * muzDist - perpX * 8, y: cy + Math.sin(ang) * muzDist - perpY * 8, vx, vy, color: skin.primary }
+        ]
+      : [
+          { x: cx + Math.cos(ang) * muzDist, y: cy + Math.sin(ang) * muzDist, vx, vy, color: skin.primary }
+        ];
+
+    skinPreviewTestShot = {
+      recoil: 6,
+      flashLife: 0.16,
+      flashX: cx + Math.cos(ang) * muzDist,
+      flashY: cy + Math.sin(ang) * muzDist,
+      angle: ang,
+      bullets: shotBullets
+    };
+    setSkinWorkshopStatus(`Test fired ${cfg.name || 'Robot'} cannon!`);
+  }
+
+  function renderSkinWorkshopControls() {
+    const cfg = botConfigs[editingSkinSlotIdx];
+    if (!cfg) return;
+    const skin = sanitizeSkin(cfg.skin, editingSkinSlotIdx);
+    cfg.skin = skin;
+
+    if (skinModalDot) skinModalDot.style.background = skin.primary;
+    if (skinModalTitle) skinModalTitle.textContent = `${cfg.name || BOT_SLOTS[editingSkinSlotIdx].slotLabel} — Skin Workshop`;
+    if (skinPrimaryPicker) skinPrimaryPicker.value = skin.primary;
+    if (skinAccentPicker) skinAccentPicker.value = skin.accent;
+
+    if (skinPresetsRow) {
+      skinPresetsRow.innerHTML = SKIN_PRESETS.map(p =>
+        `<button type="button" class="skin-preset-btn" data-preset="${p.id}">${escapeHtml(p.label)}</button>`
+      ).join('');
+      skinPresetsRow.querySelectorAll('.skin-preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const p = SKIN_PRESETS.find(x => x.id === btn.dataset.preset);
+          if (!p) return;
+          cfg.skin = sanitizeSkin({ ...p.skin }, editingSkinSlotIdx);
+          persistAllSkins();
+          renderSkinWorkshopControls();
+          renderSetupCards();
+          setSkinWorkshopStatus(`Applied "${p.label}" preset!`);
+        });
+      });
+    }
+
+    if (skinPrimarySwatches) {
+      skinPrimarySwatches.innerHTML = SKIN_PRIMARY_COLORS.map(col =>
+        `<button type="button" class="skin-swatch-btn ${skin.primary.toLowerCase() === col ? 'active' : ''}" data-color="${col}" style="background:${col};" title="${col}"></button>`
+      ).join('');
+      skinPrimarySwatches.querySelectorAll('.skin-swatch-btn').forEach(sw => {
+        sw.addEventListener('click', () => {
+          cfg.skin.primary = sw.dataset.color;
+          persistAllSkins();
+          renderSkinWorkshopControls();
+          renderSetupCards();
+        });
+      });
+    }
+
+    if (skinAccentSwatches) {
+      skinAccentSwatches.innerHTML = SKIN_ACCENT_COLORS.map(col =>
+        `<button type="button" class="skin-swatch-btn ${skin.accent.toLowerCase() === col ? 'active' : ''}" data-color="${col}" style="background:${col};" title="${col}"></button>`
+      ).join('');
+      skinAccentSwatches.querySelectorAll('.skin-swatch-btn').forEach(sw => {
+        sw.addEventListener('click', () => {
+          cfg.skin.accent = sw.dataset.color;
+          persistAllSkins();
+          renderSkinWorkshopControls();
+          renderSetupCards();
+        });
+      });
+    }
+
+    const bindOptionGrid = (container, category) => {
+      if (!container) return;
+      const list = SKIN_OPTIONS[category] || [];
+      container.innerHTML = list.map(opt =>
+        `<button type="button" class="skin-option-btn ${skin[category] === opt.id ? 'active' : ''}" data-val="${opt.id}">${escapeHtml(opt.label)}</button>`
+      ).join('');
+      container.querySelectorAll('.skin-option-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          cfg.skin[category] = btn.dataset.val;
+          persistAllSkins();
+          renderSkinWorkshopControls();
+          renderSetupCards();
+          setSkinWorkshopStatus(`Updated ${category}: ${getOptionLabel(category, btn.dataset.val)}`);
+        });
+      });
+    };
+
+    bindOptionGrid(skinBodyOptions, 'body');
+    bindOptionGrid(skinWheelsOptions, 'wheels');
+    bindOptionGrid(skinCannonOptions, 'cannon');
+    bindOptionGrid(skinEmblemOptions, 'emblem');
+    bindOptionGrid(skinAccessoryOptions, 'accessory');
+    bindOptionGrid(skinTrailOptions, 'trail');
+  }
+
+  function renderSkinPreviewFrame(nowSec, rawDt) {
+    if (!skinPreviewCtx || !skinPreviewCanvas) return;
+    const cfg = botConfigs[editingSkinSlotIdx];
+    if (!cfg) return;
+    const skin = sanitizeSkin(cfg.skin, editingSkinSlotIdx);
+    const w = skinPreviewCanvas.width;
+    const h = skinPreviewCanvas.height;
+    const dt = Math.min(rawDt || 0.016, 0.05);
+
+    // Warm cartoon checkerboard pixel arena backdrop
+    const tile = 22;
+    for (let gy = 0; gy < h; gy += tile) {
+      for (let gx = 0; gx < w; gx += tile) {
+        const alt = ((Math.floor(gx / tile) + Math.floor(gy / tile)) & 1) === 0;
+        skinPreviewCtx.fillStyle = alt ? '#f8f3e8' : '#ede4d3';
+        skinPreviewCtx.fillRect(gx, gy, tile, tile);
+      }
+    }
+    skinPreviewCtx.strokeStyle = '#cbd5e1';
+    skinPreviewCtx.lineWidth = 1;
+    skinPreviewCtx.strokeRect(0.5, 0.5, w - 1, h - 1);
+
+    const cx = 104;
+    const cy = 112;
+    const bodyAngle = -0.15 + Math.sin(nowSec * 1.4) * 0.22;
+
+    // Animated selected movement trail behind the robot
+    for (let i = 1; i <= 4; i++) {
+      const tx = cx - Math.cos(bodyAngle) * (i * 22);
+      const ty = cy - Math.sin(bodyAngle) * (i * 22);
+      const frac = 1 - i * 0.2;
+      skinPreviewCtx.save();
+      skinPreviewCtx.globalAlpha = frac * 0.7;
+      if (skin.trail === 'stars') {
+        skinPreviewCtx.fillStyle = skin.accent;
+        skinPreviewCtx.strokeStyle = '#1e293b';
+        skinPreviewCtx.lineWidth = 1.5;
+        skinPreviewCtx.beginPath();
+        skinPreviewCtx.arc(tx, ty, 5 * frac, 0, Math.PI * 2);
+        skinPreviewCtx.fill();
+        skinPreviewCtx.stroke();
+      } else if (skin.trail === 'smoke') {
+        skinPreviewCtx.fillStyle = '#ffffff';
+        skinPreviewCtx.strokeStyle = '#1e293b';
+        skinPreviewCtx.lineWidth = 1.5;
+        skinPreviewCtx.beginPath();
+        skinPreviewCtx.arc(tx, ty + Math.sin(nowSec * 6 + i) * 3, 7 * frac, 0, Math.PI * 2);
+        skinPreviewCtx.fill();
+        skinPreviewCtx.stroke();
+      } else if (skin.trail === 'sparks') {
+        skinPreviewCtx.fillStyle = skin.accent;
+        skinPreviewCtx.fillRect(tx - 4, ty - 14, 7 * frac, 7 * frac);
+        skinPreviewCtx.fillRect(tx - 4, ty + 8, 7 * frac, 7 * frac);
+      } else if (skin.trail === 'rainbow') {
+        const rCols = ['#ef4444', '#f59e0b', '#10b981', '#06b6d4', '#8b5cf6'];
+        skinPreviewCtx.fillStyle = rCols[i % rCols.length];
+        skinPreviewCtx.fillRect(tx - 4, ty - 10, 8, 8);
+        skinPreviewCtx.fillStyle = rCols[(i + 2) % rCols.length];
+        skinPreviewCtx.fillRect(tx - 4, ty + 4, 8, 8);
+      } else {
+        skinPreviewCtx.fillStyle = '#1e293b';
+        skinPreviewCtx.globalAlpha = frac * 0.25;
+        skinPreviewCtx.fillRect(tx - 5, ty - 28, 10, 5);
+        skinPreviewCtx.fillRect(tx - 5, ty + 23, 10, 5);
+      }
+      skinPreviewCtx.restore();
+    }
+
+    // Advance test-fire recoil & flying cartoon bullets
+    let recoil = 0;
+    if (skinPreviewTestShot) {
+      recoil = skinPreviewTestShot.recoil;
+      skinPreviewTestShot.recoil = Math.max(0, skinPreviewTestShot.recoil - 26 * dt);
+      skinPreviewTestShot.flashLife = Math.max(0, skinPreviewTestShot.flashLife - dt);
+      for (let i = skinPreviewTestShot.bullets.length - 1; i >= 0; i--) {
+        const b = skinPreviewTestShot.bullets[i];
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+        if (b.x < -20 || b.x > w + 20 || b.y < -20 || b.y > h + 20) {
+          skinPreviewTestShot.bullets.splice(i, 1);
+        }
+      }
+      if (skinPreviewTestShot.recoil <= 0 && skinPreviewTestShot.flashLife <= 0 && skinPreviewTestShot.bullets.length === 0) {
+        skinPreviewTestShot = null;
+      }
+    }
+
+    // Draw scaled robot sprite
+    skinPreviewCtx.save();
+    skinPreviewCtx.translate(cx, cy);
+    renderRobotSprite(skinPreviewCtx, skin, {
+      bodyAngle,
+      recoil,
+      hitFlash: 0,
+      time: nowSec,
+      distanceTraveled: nowSec * 52,
+      isPlayer: cfg.role === 'p1' || cfg.role === 'p2',
+      scale: 2.9,
+      shadow: true
+    });
+    skinPreviewCtx.restore();
+
+    // Draw active preview muzzle flash + cartoon bullets
+    if (skinPreviewTestShot) {
+      if (skinPreviewTestShot.flashLife > 0) {
+        const fa = skinPreviewTestShot.flashLife / 0.16;
+        skinPreviewCtx.save();
+        skinPreviewCtx.globalAlpha = fa;
+        skinPreviewCtx.fillStyle = '#fef08a';
+        skinPreviewCtx.strokeStyle = '#1e293b';
+        skinPreviewCtx.lineWidth = 2;
+        skinPreviewCtx.beginPath();
+        skinPreviewCtx.arc(skinPreviewTestShot.flashX, skinPreviewTestShot.flashY, 10 * fa + 4, 0, Math.PI * 2);
+        skinPreviewCtx.fill();
+        skinPreviewCtx.stroke();
+        skinPreviewCtx.font = '700 12px "Silkscreen", monospace';
+        skinPreviewCtx.fillStyle = skin.primary;
+        skinPreviewCtx.fillText('PEW!', skinPreviewTestShot.flashX - 10, skinPreviewTestShot.flashY - 14);
+        skinPreviewCtx.restore();
+      }
+      for (const b of skinPreviewTestShot.bullets) {
+        skinPreviewCtx.save();
+        skinPreviewCtx.fillStyle = b.color;
+        skinPreviewCtx.strokeStyle = '#1e293b';
+        skinPreviewCtx.lineWidth = 2.4;
+        skinPreviewCtx.beginPath();
+        skinPreviewCtx.arc(b.x, b.y, 7.5, 0, Math.PI * 2);
+        skinPreviewCtx.fill();
+        skinPreviewCtx.stroke();
+        skinPreviewCtx.fillStyle = '#ffffff';
+        skinPreviewCtx.fillRect(b.x - 3, b.y - 3, 3, 3);
+        skinPreviewCtx.restore();
+      }
+    }
+  }
+
+  function openSkinModal(slotIdx) {
+    editingSkinSlotIdx = slotIdx;
+    skinPreviewTestShot = null;
+    renderSkinWorkshopControls();
+    setSkinWorkshopStatus('Saved automatically to your browser');
+    if (skinModal) skinModal.classList.remove('hidden');
+    renderSkinPreviewFrame(performance.now() * 0.001, 0.016);
+  }
+
+  function closeSkinModal() {
+    if (skinModal) skinModal.classList.add('hidden');
+  }
+
+  // ==================== TOURNAMENT LEADERBOARD MODAL CONTROLLER ====================
+  const LB_SORT_OPTIONS = [
+    { key: 'points', label: 'Points' },
+    { key: 'wins', label: 'Wins' },
+    { key: 'kills', label: 'Kills' },
+    { key: 'kd', label: 'K/D' },
+    { key: 'damageDealt', label: 'Dmg Dealt' },
+    { key: 'accuracy', label: 'Accuracy' },
+    { key: 'bankHits', label: 'Banks' },
+    { key: 'powerupsCollected', label: 'Drops' },
+    { key: 'hpRegened', label: 'Regen' },
+    { key: 'closeDodges', label: 'Dodges' },
+    { key: 'avgSurv', label: 'Avg Surv' }
+  ];
+
+  function getEntrySortMetric(e, sortKey) {
+    if (sortKey === 'kd') return (e.kills || 0) / Math.max(1, e.deaths || 0);
+    if (sortKey === 'accuracy') return e.shotsFired > 0 ? (e.shotsHit / e.shotsFired) : 0;
+    if (sortKey === 'avgSurv') return e.games > 0 ? (e.totalSurvivalTime / e.games) : 0;
+    return e[sortKey] || 0;
+  }
+
+  function renderLeaderboardModal() {
+    if (!leaderboardModal) return;
+    const comp = leaderboardState.seriesCompletedMatches;
+    const tgt = leaderboardState.seriesTargetMatches;
+    if (lbProgressBadge) {
+      lbProgressBadge.textContent = `${comp} / ${tgt} Matches${comp >= tgt && comp > 0 ? ' · Complete ★' : ''}`;
+    }
+
+    const entries = Object.values(leaderboardState.entries || {});
+    const sortKey = leaderboardState.sortKey || 'points';
+
+    if (lbSortBar) {
+      lbSortBar.innerHTML = LB_SORT_OPTIONS.map(opt =>
+        `<button type="button" class="lb-sort-btn ${sortKey === opt.key ? 'active' : ''}" data-sort="${opt.key}">${escapeHtml(opt.label)}</button>`
+      ).join('');
+      lbSortBar.querySelectorAll('.lb-sort-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          leaderboardState.sortKey = btn.dataset.sort;
+          saveLeaderboardState();
+          renderLeaderboardModal();
+        });
+      });
+    }
+
+    entries.sort((a, b) => {
+      const diff = getEntrySortMetric(b, sortKey) - getEntrySortMetric(a, sortKey);
+      if (Math.abs(diff) > 0.0001) return diff;
+      if ((b.points || 0) !== (a.points || 0)) return (b.points || 0) - (a.points || 0);
+      if ((b.wins || 0) !== (a.wins || 0)) return (b.wins || 0) - (a.wins || 0);
+      return (b.kills || 0) - (a.kills || 0);
+    });
+
+    if (lbLeaderBanner) {
+      if (entries.length === 0) {
+        lbLeaderBanner.innerHTML = `
+          <div>
+            <strong>No completed matches recorded yet</strong>
+            <span style="display:block;font-size:0.8rem;color:#475569;margin-top:2px;">Play a match or click Auto-Run Series to populate all combat, survival, and special stats across ${tgt} matches.</span>
+          </div>
+          <span class="badge-pill" style="background:#fff;border:1.5px solid #1e293b;">Scoring: 3/2/1/0 + 1/Kill</span>
+        `;
+      } else {
+        const leader = entries[0];
+        const leaderWinPct = leader.games > 0 ? Math.round((leader.wins / leader.games) * 100) : 0;
+        const champTag = comp >= tgt ? 'SERIES CHAMPION ★' : 'CURRENT LEADER';
+        lbLeaderBanner.innerHTML = `
+          <div class="lb-leader-left">
+            <span class="podium-dot" style="width:18px;height:18px;border:2px solid #1e293b;background:${leader.color || '#2563eb'};"></span>
+            <div>
+              <div style="font-size:0.72rem;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:#92400e;">${champTag}</div>
+              <div style="font-size:1.05rem;font-weight:800;color:#1e293b;">${escapeHtml(leader.name)} — ${leader.points} Pts (${leader.wins}W · ${leaderWinPct}% · ${leader.kills} Kills)</div>
+            </div>
+          </div>
+          <span class="badge-pill" style="background:#fff;border:1.5px solid #1e293b;">Scoring: 3/2/1/0 + 1/Kill</span>
+        `;
+      }
+    }
+
+    if (lbTbody) {
+      if (entries.length === 0) {
+        lbTbody.innerHTML = `<tr><td colspan="18" style="text-align:center;padding:24px;color:#64748b;">Play a match to see tournament standings & full statistics here.</td></tr>`;
+      } else {
+        lbTbody.innerHTML = entries.map((e, i) => {
+          const gp = Math.max(0, e.games || 0);
+          const winPct = gp > 0 ? Math.round((e.wins / gp) * 100) : 0;
+          const kdStr = e.deaths === 0
+            ? (e.kills > 0 ? `${e.kills.toFixed(2)}★` : '0.00')
+            : (e.kills / e.deaths).toFixed(2);
+          const accPct = e.shotsFired > 0 ? Math.round((e.shotsHit / e.shotsFired) * 100) : 0;
+          const avgSurv = gp > 0 ? (e.totalSurvivalTime / gp) : 0;
+          const rankLabel = i === 0 ? '★ #1' : `#${i + 1}`;
+          return `
+            <tr>
+              <td><span class="lb-rank-badge">${rankLabel}</span></td>
+              <td>
+                <div class="podium-bot-cell">
+                  <span class="podium-dot" style="background:${e.color || '#64748b'};"></span>
+                  <strong>${escapeHtml(e.name)}</strong>
+                </div>
+              </td>
+              <td>${escapeHtml(e.mode || 'AI')}</td>
+              <td>${gp}</td>
+              <td><strong>${e.points}</strong></td>
+              <td>${e.wins} (${winPct}%)</td>
+              <td>${e.kills}</td>
+              <td>${e.deaths}</td>
+              <td>${kdStr}</td>
+              <td>${e.damageDealt}</td>
+              <td>${e.damageTaken}</td>
+              <td>${accPct}% (${e.shotsHit}/${e.shotsFired})</td>
+              <td>${e.bankHits}</td>
+              <td>${e.pillarHits}</td>
+              <td>${e.powerupsCollected}</td>
+              <td>+${e.hpRegened} (${e.regenUses}×)</td>
+              <td>${e.closeDodges}</td>
+              <td>${formatTime(avgSurv)}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    if (lbMatchHistory) {
+      const hist = leaderboardState.history || [];
+      if (hist.length === 0) {
+        lbMatchHistory.innerHTML = `<li><span>No matches recorded yet</span><span>—</span></li>`;
+      } else {
+        lbMatchHistory.innerHTML = hist.map(h => `
+          <li>
+            <span>
+              <strong>#${h.matchNum}</strong> · ${escapeHtml(h.theme)} · Winner:
+              <strong style="color:${h.winnerColor || '#1e293b'};">${escapeHtml(h.winnerName)}</strong>
+              (${h.topKills} kills)
+            </span>
+            <span>${escapeHtml(h.duration)} · ${h.botCount} bots</span>
+          </li>
+        `).join('');
+      }
+    }
+  }
+
+  function openLeaderboardModal() {
+    renderLeaderboardModal();
+    if (leaderboardModal) leaderboardModal.classList.remove('hidden');
+  }
+
+  function closeLeaderboardModal() {
+    if (leaderboardModal) leaderboardModal.classList.add('hidden');
+  }
+
+  function resetLeaderboard() {
+    leaderboardState.seriesCompletedMatches = 0;
+    leaderboardState.entries = {};
+    leaderboardState.history = [];
+    saveLeaderboardState();
+    updateSeriesPillUI();
+    renderLeaderboardModal();
   }
 
   function setCodeModalTab(tab) {
@@ -8900,17 +10136,123 @@ Based on this exact match telemetry and diagnosis:
   btnVictorySetup.addEventListener('click', returnToSetup);
   btnRematchNew.addEventListener('click', () => { stopAutoTrain(false); startMatch(true); });
   btnRematchSame.addEventListener('click', () => { stopAutoTrain(false); startMatch(false); });
+
+  if (btnSeriesMinus) {
+    btnSeriesMinus.addEventListener('click', () => {
+      SoundEngine.unlock();
+      setSeriesTarget(leaderboardState.seriesTargetMatches - 1);
+    });
+  }
+  if (btnSeriesPlus) {
+    btnSeriesPlus.addEventListener('click', () => {
+      SoundEngine.unlock();
+      setSeriesTarget(leaderboardState.seriesTargetMatches + 1);
+    });
+  }
+  if (seriesCountInput) {
+    seriesCountInput.addEventListener('change', () => setSeriesTarget(seriesCountInput.value));
+    seriesCountInput.addEventListener('input', () => {
+      const val = Number(seriesCountInput.value);
+      if (!Number.isNaN(val) && val >= 1 && val <= 50) {
+        leaderboardState.seriesTargetMatches = Math.round(val);
+        saveLeaderboardState();
+        updateSeriesPillUI();
+        updateAutoTrainButtonUI();
+      }
+    });
+  }
+
+  if (btnOpenLbSetup) btnOpenLbSetup.addEventListener('click', openLeaderboardModal);
+  if (btnOpenLbArena) btnOpenLbArena.addEventListener('click', openLeaderboardModal);
+  if (btnVictoryLb) btnVictoryLb.addEventListener('click', openLeaderboardModal);
+  if (btnNextSeriesMatch) {
+    btnNextSeriesMatch.addEventListener('click', () => {
+      stopAutoTrain(false);
+      startMatch(true);
+    });
+  }
+  if (btnCloseLb) btnCloseLb.addEventListener('click', closeLeaderboardModal);
+  if (btnCloseLb2) btnCloseLb2.addEventListener('click', closeLeaderboardModal);
+  if (btnResetLb) btnResetLb.addEventListener('click', resetLeaderboard);
+  if (leaderboardModal) {
+    leaderboardModal.addEventListener('click', e => {
+      if (e.target === leaderboardModal) closeLeaderboardModal();
+    });
+  }
+
+  // Skin Workshop listeners
+  if (btnCloseSkin) btnCloseSkin.addEventListener('click', closeSkinModal);
+  if (btnCloseSkin2) btnCloseSkin2.addEventListener('click', closeSkinModal);
+  if (skinModal) {
+    skinModal.addEventListener('click', e => {
+      if (e.target === skinModal) closeSkinModal();
+    });
+  }
+  if (btnSkinTestFire) btnSkinTestFire.addEventListener('click', triggerSkinPreviewFire);
+  if (skinPreviewCanvas) skinPreviewCanvas.addEventListener('click', triggerSkinPreviewFire);
+  if (skinPrimaryPicker) {
+    skinPrimaryPicker.addEventListener('input', () => {
+      const cfg = botConfigs[editingSkinSlotIdx];
+      if (!cfg) return;
+      cfg.skin.primary = skinPrimaryPicker.value;
+      persistAllSkins();
+      renderSkinWorkshopControls();
+      renderSetupCards();
+    });
+  }
+  if (skinAccentPicker) {
+    skinAccentPicker.addEventListener('input', () => {
+      const cfg = botConfigs[editingSkinSlotIdx];
+      if (!cfg) return;
+      cfg.skin.accent = skinAccentPicker.value;
+      persistAllSkins();
+      renderSkinWorkshopControls();
+      renderSetupCards();
+    });
+  }
+  if (btnSkinRandomize) {
+    btnSkinRandomize.addEventListener('click', () => {
+      const cfg = botConfigs[editingSkinSlotIdx];
+      if (!cfg) return;
+      cfg.skin = {
+        primary: randChoice(SKIN_PRIMARY_COLORS),
+        accent: randChoice(SKIN_ACCENT_COLORS),
+        body: randChoice(SKIN_OPTIONS.body).id,
+        wheels: randChoice(SKIN_OPTIONS.wheels).id,
+        cannon: randChoice(SKIN_OPTIONS.cannon).id,
+        emblem: randChoice(SKIN_OPTIONS.emblem).id,
+        accessory: randChoice(SKIN_OPTIONS.accessory).id,
+        trail: randChoice(SKIN_OPTIONS.trail).id
+      };
+      persistAllSkins();
+      renderSkinWorkshopControls();
+      renderSetupCards();
+      setSkinWorkshopStatus('Randomized look!');
+    });
+  }
+  if (btnSkinReset) {
+    btnSkinReset.addEventListener('click', () => {
+      const cfg = botConfigs[editingSkinSlotIdx];
+      if (!cfg) return;
+      cfg.skin = { ...DEFAULT_SLOT_SKINS[editingSkinSlotIdx % DEFAULT_SLOT_SKINS.length] };
+      persistAllSkins();
+      renderSkinWorkshopControls();
+      renderSetupCards();
+      setSkinWorkshopStatus('Reset to default slot skin');
+    });
+  }
+
   if (btnAutoTrain) {
     btnAutoTrain.addEventListener('click', () => {
       SoundEngine.unlock();
       if (autoTrainRemaining > 0) stopAutoTrain(true);
-      else startAutoTrain(5);
+      else startAutoTrain();
     });
   }
   if (btnVictoryAutoTrain) {
     btnVictoryAutoTrain.addEventListener('click', () => {
       SoundEngine.unlock();
-      startAutoTrain(5);
+      startAutoTrain();
     });
   }
 
@@ -8933,11 +10275,15 @@ Based on this exact match telemetry and diagnosis:
   // Keyboard controls (P1: WASD + Space/F, P2: Arrows + Enter/Slash/RShift, P pause, L LiDAR, Esc closes modals)
   window.addEventListener('keydown', e => {
     if (e.code === 'Escape') {
+      if (skinModal && !skinModal.classList.contains('hidden')) { closeSkinModal(); return; }
+      if (leaderboardModal && !leaderboardModal.classList.contains('hidden')) { closeLeaderboardModal(); return; }
       if (!promptModal.classList.contains('hidden')) { closePromptModal(); return; }
       if (!codeModal.classList.contains('hidden')) { closeCodeModal(); return; }
       if (!analysisModal.classList.contains('hidden')) { closeAnalysisModal(); return; }
     }
     if (
+      (skinModal && !skinModal.classList.contains('hidden')) ||
+      (leaderboardModal && !leaderboardModal.classList.contains('hidden')) ||
       !promptModal.classList.contains('hidden') ||
       !codeModal.classList.contains('hidden') ||
       !analysisModal.classList.contains('hidden')
@@ -9005,12 +10351,17 @@ Based on this exact match telemetry and diagnosis:
       activePowerups: powerups.map(p => p.type),
       activeTraps: traps.length
     }),
+    leaderboard: () => leaderboardState,
+    skins: () => botConfigs.map(c => c.skin),
     getAIPrompt: generateAIPrompt
   };
 
   // ==================== INITIALIZE ====================
   populateRulesInputs();
   syncRulesFromInputs();
+  if (seriesCountInput) seriesCountInput.value = leaderboardState.seriesTargetMatches;
+  updateSeriesPillUI();
+  updateAutoTrainButtonUI();
   renderSetupCards();
   requestAnimationFrame(loop);
 })();

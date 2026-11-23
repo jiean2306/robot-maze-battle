@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Maze Bots — AI Code &amp; PvP Robot Arena</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2.2'%3E%3Crect x='3' y='3' width='18' height='18' rx='4'/%3E%3Ccircle cx='12' cy='12' r='3.5' fill='%232563eb'/%3E%3Cpath d='M12 2V6M12 18V22M2 12H6M18 12H22' stroke-linecap='round'/%3E%3C/svg%3E" />
-  <link rel="stylesheet" href="style.css?v=12" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=JetBrains+Mono:wght@500;700&family=Silkscreen:wght@400;700&display=swap" />
+  <link rel="stylesheet" href="style.css?v=14" />
 </head>
 <body>
   <div class="app-shell">
@@ -41,6 +44,7 @@
         <!-- Battle Controls (hidden on Setup screen) -->
         <div id="battle-controls" class="battle-controls hidden">
           <span id="theme-pill" class="theme-pill">Theme: Blueprint Lab</span>
+          <span id="series-pill" class="series-pill">Match 1 / 5</span>
 
           <div class="control-group" role="group" aria-label="Match Speed">
             <span class="control-label">Speed</span>
@@ -54,8 +58,12 @@
             </div>
           </div>
 
-          <button type="button" id="btn-auto-train" class="ctrl-btn" title="Auto-run 5 fast matches at 4× speed so self-learning AI bots evolve across generations">
-            Auto-Train ×5
+          <button type="button" id="btn-auto-train" class="ctrl-btn" title="Auto-run remaining series matches at 4× speed so self-learning AI bots evolve and fill the leaderboard">
+            Auto-Run Series
+          </button>
+
+          <button type="button" id="btn-open-leaderboard-arena" class="ctrl-btn accent-ctrl" title="View Multi-Match Tournament Leaderboard">
+            Leaderboard
           </button>
 
           <button type="button" id="btn-lidar" class="ctrl-btn toggle-on" title="Toggle LiDAR raycast visualization">
@@ -86,6 +94,18 @@
             <strong id="bot-count-display" class="stepper-val">4</strong>
             <button type="button" id="btn-count-plus" class="stepper-btn" title="Add robot (max 4)">+</button>
           </div>
+
+          <!-- Series Match Count Stepper (1..50) -->
+          <div class="roster-stepper" role="group" aria-label="Tournament Matches">
+            <span class="stepper-label">Matches</span>
+            <button type="button" id="btn-series-minus" class="stepper-btn" title="Decrease tournament match count">−</button>
+            <input id="series-count-input" class="series-num-input" type="number" min="1" max="50" step="1" value="5" aria-label="Number of tournament matches" />
+            <button type="button" id="btn-series-plus" class="stepper-btn" title="Increase tournament match count">+</button>
+          </div>
+
+          <button type="button" id="btn-open-leaderboard-setup" class="btn btn-secondary" title="Open Multi-Match Tournament Leaderboard">
+            Leaderboard
+          </button>
 
           <button type="button" id="btn-quick-pvp" class="btn btn-secondary" title="Quick setup: 2 Human Players 1v1">
             2P Versus
@@ -241,11 +261,13 @@
                 </div>
 
                 <div class="victory-actions">
-                  <button type="button" id="btn-open-analysis" class="btn btn-accent">Post-Match AI Analysis</button>
-                  <button type="button" id="btn-victory-autotrain" class="btn btn-secondary" title="Auto-run 5 fast matches at 4× speed to evolve AI brains">Auto-Train ×5</button>
-                  <button type="button" id="btn-rematch-new" class="btn btn-primary">Rematch (New Maze)</button>
+                  <button type="button" id="btn-next-series-match" class="btn btn-primary hidden">Next Match (1/5)</button>
+                  <button type="button" id="btn-victory-leaderboard" class="btn btn-accent">Leaderboard</button>
+                  <button type="button" id="btn-open-analysis" class="btn btn-secondary">AI Analysis</button>
+                  <button type="button" id="btn-victory-autotrain" class="btn btn-secondary" title="Auto-run remaining series matches at 4× speed">Auto-Run Series</button>
+                  <button type="button" id="btn-rematch-new" class="btn btn-primary">New Match</button>
                   <button type="button" id="btn-rematch-same" class="btn btn-secondary">Same Maze</button>
-                  <button type="button" id="btn-victory-setup" class="btn btn-ghost">Edit Robots</button>
+                  <button type="button" id="btn-victory-setup" class="btn btn-ghost">Setup</button>
                 </div>
               </div>
             </div>
@@ -461,6 +483,171 @@
     </div>
   </div>
 
-  <script src="game.js?v=13"></script>
+  <!-- MODAL: ROBOT SKIN WORKSHOP CUSTOMIZER -->
+  <div id="skin-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="skin-modal-title">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-header">
+        <div>
+          <div class="code-modal-title-row">
+            <span id="skin-modal-dot" class="podium-dot"></span>
+            <h3 id="skin-modal-title">Robot Skin Workshop</h3>
+            <span class="studio-badge">CUSTOMIZE</span>
+          </div>
+          <p class="modal-sub">Pick colors, chassis silhouette, wheel style, cannon barrel, face/emblem, hat/accessory &amp; movement trail.</p>
+        </div>
+        <button type="button" class="modal-close" id="btn-close-skin" aria-label="Close">×</button>
+      </div>
+
+      <div class="modal-body skin-workshop-body">
+        <!-- Left: Interactive Animated Preview Stage -->
+        <div class="skin-preview-col">
+          <div class="skin-stage-card">
+            <canvas id="skin-preview-canvas" width="220" height="220" title="Click to test-fire your custom robot!"></canvas>
+            <div class="skin-stage-actions">
+              <button type="button" id="btn-skin-test-fire" class="btn btn-primary btn-sm">Test Fire!</button>
+              <button type="button" id="btn-skin-randomize" class="btn btn-secondary btn-sm">Randomize</button>
+              <button type="button" id="btn-skin-reset" class="btn btn-ghost btn-sm">Reset</button>
+            </div>
+          </div>
+
+          <div class="skin-presets-box">
+            <span class="skin-section-label">Quick Presets</span>
+            <div class="skin-presets-row" id="skin-presets-row"></div>
+          </div>
+        </div>
+
+        <!-- Right: Customization Option Selectors -->
+        <div class="skin-controls-col" id="skin-controls-col">
+          <div class="skin-control-group">
+            <div class="skin-control-head">
+              <span class="skin-section-label">Primary Color</span>
+              <label class="color-picker-chip" title="Pick any custom hex color">
+                Custom <input type="color" id="skin-primary-picker" value="#ef4444" />
+              </label>
+            </div>
+            <div class="swatch-grid" id="skin-primary-swatches"></div>
+          </div>
+
+          <div class="skin-control-group">
+            <div class="skin-control-head">
+              <span class="skin-section-label">Accent / Trim Color</span>
+              <label class="color-picker-chip" title="Pick custom trim color">
+                Custom <input type="color" id="skin-accent-picker" value="#fef08a" />
+              </label>
+            </div>
+            <div class="swatch-grid" id="skin-accent-swatches"></div>
+          </div>
+
+          <div class="skin-control-group">
+            <span class="skin-section-label">Body Shape</span>
+            <div class="skin-pill-grid" id="skin-body-options"></div>
+          </div>
+
+          <div class="skin-control-group">
+            <span class="skin-section-label">Wheel / Mobility Shape</span>
+            <div class="skin-pill-grid" id="skin-wheels-options"></div>
+          </div>
+
+          <div class="skin-control-group">
+            <span class="skin-section-label">Cannon Barrel</span>
+            <div class="skin-pill-grid" id="skin-cannon-options"></div>
+          </div>
+
+          <div class="skin-control-group">
+            <span class="skin-section-label">Face / Emblem</span>
+            <div class="skin-pill-grid" id="skin-emblem-options"></div>
+          </div>
+
+          <div class="skin-control-group">
+            <span class="skin-section-label">Accessory / Hat</span>
+            <div class="skin-pill-grid" id="skin-accessory-options"></div>
+          </div>
+
+          <div class="skin-control-group">
+            <span class="skin-section-label">Trail FX</span>
+            <div class="skin-pill-grid" id="skin-trail-options"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <span class="modal-status" id="skin-status-text">Saved automatically to your browser</span>
+        <div class="modal-footer-btns">
+          <button type="button" class="btn btn-primary" id="btn-close-skin-2">Done &amp; Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: MULTI-MATCH TOURNAMENT LEADERBOARD -->
+  <div id="leaderboard-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="lb-modal-title">
+    <div class="modal-dialog modal-xxl">
+      <div class="modal-header">
+        <div>
+          <div class="code-modal-title-row">
+            <span class="studio-badge">SERIES LEADERBOARD</span>
+            <h3 id="lb-modal-title">Tournament Standings &amp; All Stats</h3>
+            <span id="lb-progress-badge" class="brain-gen-pill">0 / 5 Matches</span>
+          </div>
+          <p class="modal-sub">Every statistic across your multi-match tournament: points, win rate, K/D, damage, accuracy, ricochet banks, pillars, power-ups, regen &amp; dodges.</p>
+        </div>
+        <button type="button" class="modal-close" id="btn-close-lb" aria-label="Close">×</button>
+      </div>
+
+      <div class="modal-body lb-modal-body">
+        <div id="lb-leader-banner" class="lb-leader-banner"></div>
+
+        <div class="lb-toolbar">
+          <div class="lb-sort-group">
+            <span class="skin-section-label">Sort By:</span>
+            <div class="lb-sort-bar" id="lb-sort-bar"></div>
+          </div>
+          <button type="button" id="btn-reset-leaderboard" class="btn btn-ghost btn-sm">Reset Stats &amp; Series</button>
+        </div>
+
+        <div class="lb-table-scroll">
+          <table class="lb-table" id="lb-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Robot</th>
+                <th>Mode</th>
+                <th>GP</th>
+                <th>Pts</th>
+                <th>Wins</th>
+                <th>Kills</th>
+                <th>Deaths</th>
+                <th>K/D</th>
+                <th>Dmg Dealt</th>
+                <th>Dmg Taken</th>
+                <th>Accuracy</th>
+                <th>Banks</th>
+                <th>Pillar</th>
+                <th>Drops</th>
+                <th>Regen</th>
+                <th>Dodges</th>
+                <th>Avg Surv</th>
+              </tr>
+            </thead>
+            <tbody id="lb-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="lb-history-box">
+          <span class="skin-section-label">Recent Series Match Log</span>
+          <ul id="lb-match-history" class="lb-history-list"></ul>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <span class="modal-status">Scoring: #1 = 3 pts · #2 = 2 pts · #3 = 1 pt · +1 pt per Kill</span>
+        <div class="modal-footer-btns">
+          <button type="button" class="btn btn-secondary" id="btn-close-lb-2">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js?v=14"></script>
 </body>
 </html>
