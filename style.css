@@ -2891,3 +2891,52 @@ html, body {
     overflow-y: auto;
   }
 }
+
+/* ==================== ONLINE 1v1 (netplay.js) ==================== */
+.net-dialog { max-width: 760px; }
+.net-body { display: block; }
+.net-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 640px) { .net-grid { grid-template-columns: 1fr; } }
+.net-card { background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 14px 16px; }
+.net-card h4 { margin: 0 0 6px; font-size: 16px; }
+.net-card p { margin: 0 0 12px; color: var(--text-muted); font-size: 14px; }
+.net-field { display: block; margin-bottom: 10px; }
+.net-field span { display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
+.net-field input, .net-field select { width: 100%; padding: 8px 10px; border: 2px solid var(--border); border-radius: var(--radius-sm); background: #fff; font: inherit; }
+#net-code { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .2em; font-size: 18px; }
+.net-code-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.net-code { font-family: var(--font-mono); font-size: 30px; font-weight: 800; letter-spacing: .25em; background: var(--amber-soft); border: 2px solid var(--border); border-radius: var(--radius-sm); padding: 4px 14px; box-shadow: var(--shadow-sm); }
+.net-guest-line { font-size: 15px; color: var(--text) !important; }
+.net-steps { margin: 0 0 14px; padding-left: 20px; color: var(--text-muted); font-size: 14px; }
+.net-steps li { margin: 3px 0; }
+.net-status.ok { color: var(--green); }
+.net-status.warn { color: var(--amber); }
+.net-status.err { color: var(--red); }
+
+.net-guest-view { position: fixed; inset: 0; z-index: 900; background: var(--bg); overflow: auto; padding: 16px; }
+.net-guest-inner { max-width: 1280px; margin: 0 auto; }
+.net-guest-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 18px; }
+.net-live-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--red); margin-right: 8px; animation: netPulse 1.2s infinite; }
+@keyframes netPulse { 50% { opacity: .3; } }
+.net-guest-status { margin: 8px 0 12px; font-weight: 600; color: var(--text-muted); }
+.net-guest-status.bad { color: var(--red); }
+.net-guest-main { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px; align-items: start; }
+@media (max-width: 900px) { .net-guest-main { grid-template-columns: 1fr; } }
+.net-video-wrap { position: relative; background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-md); overflow: hidden; aspect-ratio: 900 / 660; }
+.net-video-wrap video { display: block; width: 100%; height: 100%; object-fit: contain; background: var(--surface-subtle); }
+.net-video-wait { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-muted); font-weight: 600; }
+.net-video-wrap.live .net-video-wait { display: none; }
+.net-guest-side { display: flex; flex-direction: column; gap: 10px; }
+.net-bot { background: var(--surface); border: 2px solid var(--border); border-left: 8px solid var(--c); border-radius: var(--radius-sm); padding: 8px 10px; box-shadow: var(--shadow-sm); margin-bottom: 10px; }
+.net-bot.dead { opacity: .5; }
+.net-bot-top { display: flex; gap: 8px; align-items: center; }
+.net-bot-top b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.net-you { font-size: 11px; font-weight: 800; background: var(--c); color: #fff; border-radius: 6px; padding: 1px 6px; }
+.net-kills { font-size: 12px; font-weight: 700; color: var(--text-muted); }
+.net-hp { height: 8px; background: #e5e7eb; border-radius: 99px; overflow: hidden; margin: 6px 0 4px; border: 1px solid var(--border); }
+.net-hp i { display: block; height: 100%; background: var(--green); }
+.net-bot-sub { font-size: 12px; color: var(--text-muted); }
+.net-guest-feed { list-style: none; margin: 0; padding: 8px 10px; background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius-sm); font-size: 12px; max-height: 180px; overflow: auto; }
+.net-guest-feed:empty { display: none; }
+.net-guest-feed li { padding: 2px 0; }
+.net-guest-perf, .net-muted { font-size: 12px; color: var(--text-soft); margin: 0; }

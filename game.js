@@ -2375,11 +2375,14 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
       pendingSimTime: 0,
       reqId: 0,
       lastAction: { throttle: 0, turn: 0, fire: false, regen: false, say: '' },
-      error: null
+      error: null,
+      // Online bots think on the friend's computer: allow for network round-trips
+      timeoutMs: bot.remote ? 3000 : 650
     };
 
     try {
-      const w = new Worker(getWorkerUrl());
+      // Online 1v1: a remote bot's "worker" is a network proxy (see netplay.js)
+      const w = (bot.remote && window.MazeNet) ? window.MazeNet.createRemoteWorker(bot) : new Worker(getWorkerUrl());
       runner.worker = w;
       activeCodeWorkers.push(w);
 
@@ -4358,6 +4361,7 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
       };
 
       if (isCode) {
+        bot.remote = Boolean(cfg.remote);
         bot.codeRunner = createCodeBotRunner(bot, cfg.codeSource);
       }
 
@@ -4956,15 +4960,16 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
     // Timeout guard for genuinely hung Web Workers (resists tab-switch & screenshot stalls)
     if (runner.worker && runner.pending) {
       runner.pendingSimTime += dt;
-      if (runner.pendingSimTime > 0.65 && performance.now() - runner.pendingSince > 650) {
+      const limitMs = runner.timeoutMs || 650;
+      if (runner.pendingSimTime > limitMs / 1000 && performance.now() - runner.pendingSince > limitMs) {
         try { runner.worker.terminate(); } catch (_) {}
         runner.worker = null;
         runner.pending = false;
         runner.pendingSimTime = 0;
-        runner.error = 'Timeout (>650ms)';
+        runner.error = bot.remote ? `Connection lost (>${limitMs}ms)` : `Timeout (>${limitMs}ms)`;
         bot.codeError = runner.error;
-        bot.stateLabel = 'TIMEOUT';
-        pushFeed(`${bot.name} timed out (>650ms) and was halted!`, '#b71c1c');
+        bot.stateLabel = bot.remote ? 'DISCONNECTED' : 'TIMEOUT';
+        pushFeed(`${bot.name} ${bot.remote ? 'lost connection' : `timed out (>${limitMs}ms)`} and was halted!`, '#b71c1c');
         return;
       }
     } else {
@@ -9035,7 +9040,9 @@ Constraints: No external imports, no DOM/window/fetch access, handle empty array
       }
       // Sub-step fixed physics cleanly for 0.25x to 4x speed (with crisp micro slow-mo on kills)
       const slowMul = killSlowMoTimer > 0 ? 0.35 : 1;
-      const totalSimDt = rawDt * matchSpeed * slowMul;
+      // Online matches run at 1x so the remote bot gets the same number of think ticks
+      const speedMul = (window.MazeNet && window.MazeNet.isOnlineMatch()) ? 1 : matchSpeed;
+      const totalSimDt = rawDt * speedMul * slowMul;
       const maxStep = 1 / 60;
       let rem = totalSimDt;
       while (rem > 0.0001) {
@@ -10355,7 +10362,26 @@ Based on this exact match telemetry and diagnosis:
     }),
     leaderboard: () => leaderboardState,
     skins: () => botConfigs.map(c => c.skin),
-    getAIPrompt: generateAIPrompt
+    getAIPrompt: generateAIPrompt,
+    // Hooks used by netplay.js (online 1v1)
+    net: {
+      botConfigs,
+      getBots: () => bots,
+      getGrid: () => ({ grid, walkableCenter }),
+      getWorkerUrl,
+      stripCodeFences,
+      loadBrain: loadBotBrainRecord,
+      saveBrain: saveBotBrainRecord,
+      setBotCount: n => { activeBotCount = n; renderSetupCards(); },
+      renderSetupCards,
+      startMatch,
+      returnToSetup: () => returnToSetup(),
+      isArena: () => screenMode === 'arena',
+      isMatchOver: () => matchOver,
+      matchTime: () => matchTime,
+      feed: () => feedLog.slice(0, 6),
+      canvas
+    }
   };
 
   // ==================== INITIALIZE ====================
