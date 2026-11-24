@@ -224,6 +224,65 @@
   // ======================================================================
   // GUEST
   // ======================================================================
+  // ---------------------------------------------------------------- bot picker
+  // choice: 'keep' | 'slot:<i>' | 'sample:<id>' | 'file'
+  function botChoiceOptions(includeKeep) {
+    const a = api(); if (!a) return '';
+    const opts = [];
+    if (includeKeep) opts.push(['keep', 'Keep my current slot 1 setup']);
+    const samples = a.samples().slice().sort((x, y) => (y.id === 'opus-5-5-high') - (x.id === 'opus-5-5-high'));
+    for (const s of samples) opts.push(['sample:' + s.id, 'Built-in: ' + s.label.replace(/^Example \d+:\s*/, '')]);
+    a.botConfigs.forEach((c, i) => { if (c.role === 'code' && !c.remote) opts.push(['slot:' + i, `My Code slot ${i + 1}: ${c.name}`]); });
+    opts.push(['file', 'Load a .js bot file…']);
+    return opts.map(([v, l]) => `<option value="${v}">${String(l).replace(/[<>&"]/g, '')}</option>`).join('');
+  }
+
+  function sampleRobotName(s) {
+    if (s.id === 'opus-5-5-high') return 'Opus 5.5 High';
+    const m = s.source.match(/name:\s*"([^"]{1,18})"/);
+    return m ? m[1] : 'Code Bot';
+  }
+
+  function loadIntoSlot(slotIdx, source, name) {
+    const a = api();
+    const cfg = a.botConfigs[slotIdx];
+    cfg.role = 'code';
+    cfg.remote = false;
+    cfg.codeSource = source;
+    cfg.name = clean(name, 16) || cfg.name;
+    const pick = re => { const m = source.match(re); return m ? m[1].replace(/\\n/g, '\n') : ''; };
+    cfg.codeAuthor = pick(/author:\s*"((?:[^"\\]|\\.)*)"/) || 'Custom AI';
+    cfg.codeAlgorithm = pick(/algorithm:\s*"((?:[^"\\]|\\.)*)"/);
+    cfg.codeThoughts = pick(/thoughts:\s*"((?:[^"\\]|\\.)*)"/);
+    cfg.codeValid = true;
+    cfg.codeError = '';
+    a.renderSetupCards();
+  }
+
+  // Resolves a picker choice into a Code slot; returns the slot index or -1
+  function applyBotChoice(choice, slotIdx, fileInput) {
+    const a = api();
+    if (choice === 'keep') return Promise.resolve(slotIdx);
+    if (choice.startsWith('slot:')) return Promise.resolve(Number(choice.slice(5)));
+    if (choice.startsWith('sample:')) {
+      const s = a.samples().find(x => x.id === choice.slice(7));
+      if (!s) return Promise.resolve(-1);
+      loadIntoSlot(slotIdx, s.source, sampleRobotName(s));
+      return Promise.resolve(slotIdx);
+    }
+    if (choice === 'file') {
+      const f = fileInput && fileInput.files && fileInput.files[0];
+      if (!f) { setStatus('Choose a .js bot file first.', 'err'); return Promise.resolve(-1); }
+      if (f.size > 300000) { setStatus('That file is too big for a bot (max 300 KB).', 'err'); return Promise.resolve(-1); }
+      return f.text().then(txt => {
+        if (!/BOT\s*=|function\s+think/.test(txt)) { setStatus('That file does not look like a bot (no const BOT = { think(state) }).', 'err'); return -1; }
+        loadIntoSlot(slotIdx, txt, f.name.replace(/\.js$/i, ''));
+        return slotIdx;
+      });
+    }
+    return Promise.resolve(-1);
+  }
+
   function joinRoom(code, slotIdx, player) {
     if (!window.Peer) return setStatus('Could not load the networking library (PeerJS). Check your internet connection.', 'err');
     const a = api();
@@ -380,8 +439,23 @@
       else if (act === 'stop') { stopAll(); setStatus('Online session ended.'); renderModal(); }
       else if (act === 'copy') { navigator.clipboard && navigator.clipboard.writeText(net.code).then(() => setStatus('Room code copied!', 'ok')); }
       else if (act === 'join') {
-        joinRoom(modal.querySelector('#net-code').value, Number(modal.querySelector('#net-slot').value), modal.querySelector('#net-player').value);
+        const code = modal.querySelector('#net-code').value, player = modal.querySelector('#net-player').value;
+        applyBotChoice(modal.querySelector('#net-bot').value, 0, modal.querySelector('#net-file'))
+          .then(idx => { if (idx >= 0) joinRoom(code, idx, player); });
       }
+      else if (act === 'hostbot') {
+        const sel = modal.querySelector('#net-hostbot');
+        applyBotChoice(sel.value, 0, modal.querySelector('#net-hostfile')).then(idx => {
+          if (idx >= 0) setStatus(`Robot slot 1 is now “${api().botConfigs[0].name}”.`, 'ok');
+        });
+      }
+    });
+    // show the file chooser only when "Load a .js bot file…" is picked
+    modal.addEventListener('change', e => {
+      const sel = e.target.closest('select[data-file]');
+      if (!sel) return;
+      const f = modal.querySelector('#' + sel.dataset.file);
+      if (f) f.classList.toggle('hidden', sel.value !== 'file');
     });
 
     // guest live view
@@ -423,12 +497,14 @@
           <div class="net-code-row"><span class="net-code">${net.peer && net.peer.open ? net.code : '······'}</span>
             <button type="button" class="btn btn-secondary" data-net="copy">Copy code</button></div>
           <p class="net-guest-line">${g ? `✅ <b>${g.player}</b> is connected — their bot <b>${g.bot}</b> is in robot slot 2.` : '⏳ Waiting for your friend to join…'}</p>
-          <ol class="net-steps"><li>Set <b>robot slot 1</b> to your AI (preset AI or your own Code bot).</li><li>Wait for your friend to connect (slot 2 fills in automatically).</li><li>Close this window and press <b>Start Battle</b>. Online matches always run at 1× speed.</li></ol>
+          <label class="net-field"><span>Your robot (slot 1)</span><select id="net-hostbot" data-file="net-hostfile">${botChoiceOptions(true)}</select></label>
+          <input type="file" id="net-hostfile" class="net-file hidden" accept=".js,.txt,text/javascript">
+          <button type="button" class="btn btn-secondary" data-net="hostbot">Use this robot</button>
+          <ol class="net-steps"><li>Pick <b>your robot</b> above (or set slot 1 to any AI / Code bot on the setup screen).</li><li>Wait for your friend to connect (slot 2 fills in automatically).</li><li>Close this window and press <b>Start Battle</b>. Online matches always run at 1× speed.</li></ol>
           <button type="button" class="btn btn-secondary" data-net="stop">Stop hosting</button>
         </div>`;
       return;
     }
-    const codeSlots = a ? a.botConfigs.map((c, i) => ({ c, i })).filter(o => o.c.role === 'code' && !o.c.remote) : [];
     body.innerHTML = `
       <div class="net-grid">
         <div class="net-card">
@@ -440,10 +516,9 @@
           <h4>Join a friend</h4>
           <label class="net-field"><span>Room code</span><input id="net-code" maxlength="8" placeholder="e.g. K7QM2D" autocomplete="off"></label>
           <label class="net-field"><span>Your name</span><input id="net-player" maxlength="16" placeholder="Player"></label>
-          <label class="net-field"><span>Your bot</span><select id="net-slot">${codeSlots.length
-            ? codeSlots.map(o => `<option value="${o.i}">Slot ${o.i + 1}: ${String(o.c.name).replace(/[<>&"]/g, '')}</option>`).join('')
-            : '<option value="-1">No Code slot yet: set a robot to “Code” and load your bot</option>'}</select></label>
-          <button type="button" class="btn btn-primary" data-net="join" ${codeSlots.length ? '' : 'disabled'}>Join match</button>
+          <label class="net-field"><span>Your bot</span><select id="net-bot" data-file="net-file">${botChoiceOptions(false)}</select></label>
+          <input type="file" id="net-file" class="net-file hidden" accept=".js,.txt,text/javascript">
+          <button type="button" class="btn btn-primary" data-net="join">Join match</button>
         </div>
       </div>`;
   }

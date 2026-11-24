@@ -2940,3 +2940,5 @@ html, body {
 .net-guest-feed:empty { display: none; }
 .net-guest-feed li { padding: 2px 0; }
 .net-guest-perf, .net-muted { font-size: 12px; color: var(--text-soft); margin: 0; }
+.net-file { display: block; margin: -4px 0 10px; font-size: 13px; }
+.net-file.hidden { display: none; }
