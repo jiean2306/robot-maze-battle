@@ -84,6 +84,12 @@
   // ======================================================================
   // HOST
   // ======================================================================
+  // STUN finds a direct route; TURN relays traffic when a school/strict router blocks direct links.
+  const PEER_OPTS = { debug: 1, config: { iceServers: [
+    { urls: ['stun:stun.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] },
+    { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' }
+  ] } };
+
   function startHosting() {
     if (!window.Peer) return setStatus('Could not load the networking library (PeerJS). Check your internet connection.', 'err');
     stopAll();
@@ -91,7 +97,7 @@
     net.code = newCode();
     setStatus('Opening room…');
     renderModal();
-    const peer = net.peer = new window.Peer(PEER_PREFIX + net.code, { debug: 1 });
+    const peer = net.peer = new window.Peer(PEER_PREFIX + net.code, PEER_OPTS);
     peer.on('open', () => { setStatus('Room open. Send your friend the code below.', 'ok'); renderModal(); });
     peer.on('connection', conn => {
       if (connOpen()) { conn.on('open', () => { conn.send({ t: 'busy' }); setTimeout(() => conn.close(), 300); }); return; }
@@ -296,9 +302,12 @@
     net.guestSlot = slotIdx;
     net.player = clean(player, 16) || 'Guest';
     setStatus('Connecting…');
-    const peer = net.peer = new window.Peer({ debug: 1 });
+    const peer = net.peer = new window.Peer(PEER_OPTS);
     peer.on('open', () => {
       const conn = net.conn = peer.connect(PEER_PREFIX + code, { reliable: true });
+      setStatus('Found the room, linking the two computers…');
+      const slow = setTimeout(() => { if (net.conn === conn && !conn.open) setStatus('Still linking… if this stays stuck, one network is blocking peer-to-peer. Try a phone hotspot on either side.', 'err'); }, 15000);
+      conn.on('close', () => clearTimeout(slow));
       conn.on('open', () => {
         send({ t: 'hello', player: net.player, bot: cfg.name });
         openGuestView();
